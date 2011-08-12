@@ -1,6 +1,16 @@
 = udon-ruby
 
-Description goes here.
+{Udon}[http://udon.io] (and {here}[http://github.com/josephwecker/udon]) stands
+for Universal Document and Object Notation. At the moment it's under
+development and there's not a lot of documentation on it, but it seeks to be a
+very fast and clean "replacement" (unified syntax) for everything from haml to
+json.
+
+This is a Ruby gem implementing an parser and generator, using
+{genmachine}[http://github.com/josephwecker/genmachine] or possibly at some
+point {Ragel}[http://www.complang.org/ragel/]. The goal is to get it as fast as
+the fastest json parser/generator.  Didn't say it was possible, just said it
+was a goal.
 
 == Contributing to udon-ruby
  
@@ -15,5 +25,5 @@ Description goes here.
 == Copyright
 
 Copyright (c) 2011 Joseph Wecker. See LICENSE.txt for
-further details.
+further details. (MIT License)
 
