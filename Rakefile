@@ -14,11 +14,11 @@ require 'rake'
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
-  gem.name = "udon-ruby"
-  gem.homepage = "http://github.com/josephwecker/udon-ruby"
+  gem.name = "udon"
+  gem.homepage = "http://udon.io"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{Universal Document and Object Notation}
+  gem.description = %Q{Parse and generate udon, inspired by zml, haml, json, and more.}
   gem.email = "joseph.wecker@gmail.com"
   gem.authors = ["Joseph Wecker"]
   # dependencies defined in Gemfile
