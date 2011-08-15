@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Joseph Wecker"]
-  s.date = %q{2011-08-12}
+  s.date = %q{2011-08-15}
   s.description = %q{Parse and generate udon, inspired by zml, haml, json, and more.}
   s.email = %q{joseph.wecker@gmail.com}
   s.extra_rdoc_files = [
@@ -24,8 +24,8 @@ Gem::Specification.new do |s|
     "Rakefile",
     "VERSION",
     "lib/udon.rb",
-    "test/helper.rb",
-    "test/test_udon.rb"
+    "test/udon_test.rb",
+    "udon.gemspec"
   ]
   s.homepage = %q{http://udon.io}
   s.licenses = ["MIT"]
@@ -37,14 +37,14 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_development_dependency(%q<shoulda>, [">= 0"])
+      s.add_development_dependency(%q<riot>, [">= 0"])
       s.add_development_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.4"])
       s.add_development_dependency(%q<rcov>, [">= 0"])
       s.add_development_dependency(%q<reek>, ["~> 1.2.8"])
       s.add_development_dependency(%q<roodi>, ["~> 2.1.0"])
     else
-      s.add_dependency(%q<shoulda>, [">= 0"])
+      s.add_dependency(%q<riot>, [">= 0"])
       s.add_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
       s.add_dependency(%q<rcov>, [">= 0"])
@@ -52,7 +52,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<roodi>, ["~> 2.1.0"])
     end
   else
-    s.add_dependency(%q<shoulda>, [">= 0"])
+    s.add_dependency(%q<riot>, [">= 0"])
     s.add_dependency(%q<bundler>, ["~> 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
     s.add_dependency(%q<rcov>, [">= 0"])
