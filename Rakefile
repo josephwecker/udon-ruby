@@ -11,6 +11,11 @@ rescue Bundler::BundlerError => e
 end
 require 'rake'
 
+file "lib/udon/udon_parser.rb" => ["machines/udon.machine"] do |t|
+  sh "genmachine -o lib/udon/ -l ruby --no-executable -c UdonParser #{t.prerequisites.join(' ')}"
+end
+task :install => ["lib/udon/udon_parser.rb"]
+
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
