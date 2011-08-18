@@ -15,7 +15,12 @@ require 'rake'
 file "lib/udon/udon_parser.rb" => ["machines/udon.machine"] do |t|
   sh "genmachine -o lib/udon/ -l ruby --no-executable -c UdonParser #{t.prerequisites.join(' ')}"
 end
-task :install => ["lib/udon/udon_parser.rb"]
+task :install => [:build_parser]
+
+task :build_parser do |t|
+  sh "rm -f lib/udon/udon_parser.rb"
+  Rake::Task['lib/udon/udon_parser.rb'].execute
+end
 
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
@@ -37,6 +42,8 @@ Rake::TestTask.new(:test) do |test|
   test.pattern = 'test/**/test_*.rb'
   test.verbose = false
 end
+
+task :test => ['lib/udon/udon_parser.rb']
 
 require 'rcov/rcovtask'
 Rcov::RcovTask.new do |test|
