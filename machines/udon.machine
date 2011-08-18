@@ -1,12 +1,16 @@
  Main entrypoint - a complete udon document
-+-----------------+----------+-----+----------------+--------------+
-| document()::[]  |          |     |                | :ws          |
-| :ws             | {eof?}   | <<  |                | <done>       |
-| :ws             | [\s\t\n] | <<  |                | :ws          |
-| :ws             |          |     |                | :child       |
-| :child          | [#]      | <<  |                | comment(:ws) |
-| :child          | [|]      | <<  |                | node(:ws)    |
-+-----------------+----------+-----+----------------+--------------+
++-----------------+----------+-----+----------------+----------------+
+| document()::[]  |          |     |                | :data          |
+| :data           | [\n]     | a<< | s<<<a          | :child         |
+| :data           | .        | a<< |                | :data          |
+| :child          | [\s\t\n] | b<< |                | :child         |
+| :child          | [#]      | <<  | trash<<<b      | comment(:data) |
+| :child          | [|]      | <<  | trash<<<b      | node(:data)    |
+| :child          | .        | b<< | a<<<b          | :data          |
+| {eof}           |          | <<  | s<<<a          | <done>         |
++-----------------+----------+-----+----------------+----------------+
+#| :ws             | [\s\t\n] | a<< |                | :ws          |
+#| :ws             |          |     | s<<<a          | :child       |
 # TODO: lots more children
 
  For error recovery (go to the next line)

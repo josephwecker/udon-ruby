@@ -87,12 +87,12 @@ module UdonParser
         @leading = true; @indent = 0
       when 0x0a
         nc = peek(1).unpack('U')[0]
-        if nc == 0x0d then getch; c = 0x0a0d end
+        if nc == 0x0d then getch; c = "\n\r" end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
       when 0x0d
         nc = peek(1).unpack('U')[0]
-        if nc == 0x0a then getch; c = 0x0d0a end
+        if nc == 0x0a then getch; c = "\r\n" end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
       when 0x20
@@ -121,26 +121,30 @@ module UdonParser
     def eof?() return @last_c == :eof end
 
     def document(p=nil,name='document')
-      state=':ws'
+      state=':data'
       s = []
+      a ||= ''
+      b ||= ''
+      trash ||= ''
       loop do
         c = nextchar
+        state = '{eof}' if c==:eof
         case state
-        when ':ws'
-            case
-            when (eof?); return(s)
-            when nl?,(c>8&&c<11),space?; next
-            else @fwd=true; state=':child'; next
-            end
         when ':child'
             case
-            when c==35; state=comment(':ws',s); next
-            when c==124; state=node(':ws',s); next
+            when nl?,(c>8&&c<11),space?; b<<c; next
+            when c==35; (trash<<b if b.size>0); b=''; state=comment(':data',s); next
+            when c==124; (trash<<b if b.size>0); b=''; state=node(':data',s); next
+            else b<<c; (a<<b if b.size>0); b=''; state=':data'; next
+            end
+        when '{eof}'
+            (s<<a if a.size>0); a=''; return(s)
+        when ':data'
+            case
+            when nl?; a<<c; (s<<a if a.size>0); a=''; state=':child'; next
+            else a<<c; next
             end
         end
-        error("Unexpected #{c}")
-        @fwd = true
-        return
       end
     end
 
@@ -153,7 +157,7 @@ module UdonParser
             case
             when (eof?); @fwd=true; return(ns)
             when nl?; @fwd=true; return(ns)
-            when c!=':eof'; next
+            when !eof?; next
             end
         end
         error("Unexpected #{c}")
