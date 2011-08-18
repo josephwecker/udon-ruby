@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+require 'rdoc/task'
 require 'rubygems'
 require 'bundler'
 begin
@@ -34,14 +35,14 @@ require 'rake/testtask'
 Rake::TestTask.new(:test) do |test|
   test.libs << 'lib' << 'test'
   test.pattern = 'test/**/test_*.rb'
-  test.verbose = true
+  test.verbose = false
 end
 
 require 'rcov/rcovtask'
 Rcov::RcovTask.new do |test|
   test.libs << 'test'
   test.pattern = 'test/**/test_*.rb'
-  test.verbose = true
+  test.verbose = false
   test.rcov_opts << '--exclude "gems/*"'
 end
 
@@ -60,7 +61,6 @@ end
 
 task :default => :test
 
-require 'rake/rdoctask'
 Rake::RDocTask.new do |rdoc|
   version = File.exist?('VERSION') ? File.read('VERSION') : ""
 
