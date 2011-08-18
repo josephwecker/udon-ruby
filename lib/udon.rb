@@ -5,11 +5,14 @@ module Udon
     def version() VERSION end
 
     def parse(source, opts={})
+      pp_ast = opts.delete(:pp_ast) || false
       res = UdonParser::Parser.new(source, opts).parse
-      require 'pp'
-      puts "\n----------------- AST ---------------------"
-      pp res
-      puts "\n-------------------------------------------"
+      if pp_ast
+        require 'pp'
+        puts "\n----------------- AST ---------------------"
+        pp res
+        puts "\n-------------------------------------------"
+      end
       return res
     end
   end
