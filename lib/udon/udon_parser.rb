@@ -5,17 +5,22 @@ module UdonParser
   def self.parse(str) Parser.new(str).parse end
   def self.parse_file(fname) Parser.new(IO.read(fname)).parse end
 
-  class Node
-    attr_accessor :name, :children, :start_line, :start_pos, :end_line, :end_pos
-    def initialize(name='node',line=:unknown,pos=:unknown)
-      @name = name
-      @children = []
-      @start_line = line
-      @start_pos = pos
-      @end_line = :unknown
-      @end_pos = :unknown
+  class UHash < Hash
+    def <<(kv) k,v = kv; self[k] = v end
+  end
+
+  class UNode
+    attr_accessor :name, :m,:a,:c
+    def initialize(params={})
+      @m = params.delete(:m) || UHash.new
+      @m[:sline] ||= params.delete(:sline)
+      @m[:schr] ||= params.delete(:schr)
+      @a= params.delete(:a) || UHash.new
+      @c= params.delete(:c) || []
+      @name = params.delete(:name)
     end
-    def <<(val) @children<<val end
+    def <<(val) @c<<val end
+    def [](key) @c[key] end
   end
 
   class Parser < StringScanner
@@ -117,7 +122,7 @@ module UdonParser
 
     def document(p=nil,name='document')
       state=':ws'
-      s = Node.new(name,@line,@pos)
+      s = []
       loop do
         c = nextchar
         case state
@@ -161,7 +166,7 @@ module UdonParser
       ipar=@indent
       ibase=ipar+100
       state=':1st:ws'
-      s = Node.new(name,@line,@pos)
+      s = UNode.new(:name=>name,:sline=>@line,:schr=>@pos)
       a ||= ''
       loop do
         c = nextchar

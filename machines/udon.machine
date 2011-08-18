@@ -1,6 +1,6 @@
  Main entrypoint - a complete udon document
 +-----------------+----------+-----+----------------+--------------+
-| document()      |          |     |                | :ws          |
+| document()::[]  |          |     |                | :ws          |
 | :ws             | {eof?}   | <<  |                | <done>       |
 | :ws             | [\s\t\n] | <<  |                | :ws          |
 | :ws             |          |     |                | :child       |
@@ -19,7 +19,7 @@
 
  Block comments
 +-----------------+-----------------+-----+-----------------+--------------+
-| comment(ns)     |                 |     | ipar=$indent    | :1st:ws      |
+| comment(ns)::U  |                 |     | ipar=$indent    | :1st:ws      |
 :                 :                 :     : ibase=ipar+100  :              :
 | :1st:ws         | [ \t]           | <<  |                 | :1st:ws      |
 | :1st:ws         | [\n]            | <<  |                 | :nl          |
