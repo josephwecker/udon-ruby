@@ -1,6 +1,6 @@
 require 'helper'
 
-class TestTmptmpgem < MiniTest::Unit::TestCase
+class TestUdon < MiniTest::Unit::TestCase
   def test_blank_documents
     assert_equal(''.udon,[])
     (0..10).each do
