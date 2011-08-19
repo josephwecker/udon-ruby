@@ -6,7 +6,7 @@ class TestUdon < MiniTest::Unit::TestCase
     assert_equal(''.udon,[])
     (0..3).each do
       s = randstr(200,"      \t\n\r")
-      assert_equal(s.udon.join(''),s)
+      assert_equal(s,s.udon.join(''))
     end
   end
 
@@ -22,12 +22,12 @@ class TestUdon < MiniTest::Unit::TestCase
     (0..3).each do
       s = randstr(100,chars)
       s.gsub! /^\s*(<\||#|\|)/u, '' # Remove stuff that triggers udon mode
-      assert_equal(s.udon.join(''),s)
+      assert_equal(s,s.udon.join(''))
     end
   end
 
   def test_block_comment_indent_level
-    leading = randstr(200,"      \t\n\r")
+    leading = randstr(200,"      \t\n\r") + "\n"
     comment = <<-COMMENT
       #  line 1
          line 2
@@ -36,11 +36,11 @@ class TestUdon < MiniTest::Unit::TestCase
      COMMENT
     following = randstr(200,"     \t\n\r")
     s = (leading + comment + following)
-    r = s.udon_pp
-    assert_instance_of(UNode, r.last)
-    assert_equals(r.last.c[0], 'line 1')
-    assert_equals(r.last.c[1], 'line 2')
-    assert_equals(r.last.c[2], 'line 3')
-    assert_equals(r.last.c[3], 'line 4')
+    r = s.udon
+    assert_instance_of(UdonParser::UNode, r.last)
+    assert_equal('line 1', r.last.c[0])
+    assert_equal('line 2', r.last.c[1])
+    assert_equal('line 3', r.last.c[2])
+    assert_equal('line 4', r.last.c[3])
   end
 end
