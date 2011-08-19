@@ -26,10 +26,21 @@ class TestUdon < MiniTest::Unit::TestCase
     end
   end
 
-  def test_block_comments
-    #leading = randstr(200,"      \t\n\r")
-    #comment = "# hello\na"
-    #following = randstr(200,"     \t\n\r")
-    #(leading + comment + following).udon_pp
+  def test_block_comment_indent_level
+    leading = randstr(200,"      \t\n\r")
+    comment = <<-COMMENT
+      #  line 1
+         line 2
+        line 3
+       line 4
+     COMMENT
+    following = randstr(200,"     \t\n\r")
+    s = (leading + comment + following)
+    r = s.udon_pp
+    assert_instance_of(UNode, r.last)
+    assert_equals(r.last.c[0], 'line 1')
+    assert_equals(r.last.c[1], 'line 2')
+    assert_equals(r.last.c[2], 'line 3')
+    assert_equals(r.last.c[3], 'line 4')
   end
 end
