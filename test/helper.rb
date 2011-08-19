@@ -39,7 +39,15 @@ def gaussian(mean, stddev)
   end
 end
 
-def randstr(avg_length, char_dists = [[0.1,' '],[0.1,('A'..'Z')],[0.8,('a'..'z')]])
+def randstr(avg_length, char_dists = nil)
+  char_dists ||= [[0.10,  " \t"],
+                  [0.05,  "\n\r"],
+                  [0.40,  ('a'..'z')],
+                  [0.15,  ('A'..'Z')],
+                  [0.15,  ('0'..'9')],
+                  [0.075, (32..126)],
+                  [0.05,  (0..255)],
+                  [0.025, (0..0xffff)]]
   ret = ''
   char_dists = char_dists.scan /./umn if char_dists.is_a?(String)
   chrs = char_dists.sort_by{|n|n[0]}

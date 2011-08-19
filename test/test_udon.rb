@@ -6,36 +6,33 @@ class TestUdon < MiniTest::Unit::TestCase
     ##############
     assert_equal         [],                    ''.udon
     ##############
-
     (0..3).each do
       s = randstr(200,"      \t\n\r")
-
       ##############
       assert_equal       s,                     s.udon.join('')
       ##############
     end
   end
 
-  def test_passthrough_documents
-    chars = [[0.10,  " \t"],
-             [0.05,  "\n\r"],
-             [0.40,  ('a'..'z')],
-             [0.15,  ('A'..'Z')],
-             [0.15,  ('0'..'9')],
-             [0.075, (32..126)],
-             [0.05,  (0..255)],
-             [0.025, (0..0xffff)]]
+  def test_passthru_documents
     (0..3).each do
-      s = randstr(100,chars)
+      s = randstr(100)
       s.gsub! /^\s*(<\||#|\|)/u, '' # Remove stuff that triggers udon mode
-
       ##############
       assert_equal       s,                     s.udon.join('')
       ##############
     end
   end
 
-  def test_block_comment_indent_level
+  def test_only_block_comment
+    ##############
+    assert_equal         '#hi'.udon[0].name,    'comment'
+    assert_equal         '#hi'.udon[0].c[0],    'hi'
+    assert_equal         '#  hi'.udon[0].c[0],  'hi'
+    ##############
+  end
+
+  def test_block_comment_indent_level_with_leading
     leading = randstr(200,"      \t\n\r") + "\n"
     comment = <<-COMMENT
       #  line 0
@@ -50,7 +47,6 @@ class TestUdon < MiniTest::Unit::TestCase
     s = (leading + comment + following)
     r = s.udon
     lines = r[-2].c
-
     ##############
     assert_instance_of   UdonParser::UNode,     r[-2]
     assert_equal         'comment',             r[-2].name
@@ -62,5 +58,9 @@ class TestUdon < MiniTest::Unit::TestCase
     assert_instance_of   UdonParser::UNode,     r[-1]
     assert_equal         'comment',             r[-1].name
     ##############
+  end
+
+  def test_block_comment_in_passthru
+
   end
 end
