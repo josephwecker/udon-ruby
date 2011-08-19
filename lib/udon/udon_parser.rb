@@ -1,22 +1,46 @@
 require 'strscan'
 $KCODE="U"
 
+class Integer
+  def into(v); v << self end
+  def reset!; :nop end
+  def reset; :nop end
+end
+
 module UdonParser
   def self.parse(str) Parser.new(str).parse end
   def self.parse_file(fname) Parser.new(IO.read(fname)).parse end
 
+
+  class UArray < Array
+    def into(v)
+      return if size == 0
+      v << self
+    end
+    def reset!; self.clear end
+    def reset; d=dup;d.reset!;d end
+  end
+
   class UHash < Hash
+    def into(v) v << self end
     def <<(kv) k,v = kv; self[k] = v end
+    def reset!; self.clear end
+    def reset; d=dup; d.reset!; d end
   end
 
   class UString < String
-    def <<(v)
-      begin
-        super([v].pack('U*'))
-      rescue
-        super(v)
-      end
+    def into(v)
+      return if size == 0
+      v << self.dup
+      reset!
     end
+
+    def <<(v)
+      begin; super([v].pack('U*'))
+      rescue; super(v) end
+    end
+    def reset!; self.gsub! /./um,'' end
+    def reset; d=dup;d.reset!;d end
   end
 
   class UNode
@@ -29,6 +53,7 @@ module UdonParser
       @c= params.delete(:c) || []
       @name = params.delete(:name)
     end
+    def into(val) val << self end
     def <<(val) @c<<val end
     def [](key) @c[key] end
   end
@@ -97,12 +122,12 @@ module UdonParser
         @leading = true; @indent = 0
       when 0x0a
         nc = peek(4).unpack('U')[0]
-        if nc == 0x0d then getch; c = "\n\r" end
+        if nc == 0x0d then getch; c = UString.new("\n\r") end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
       when 0x0d
         nc = peek(4).unpack('U')[0]
-        if nc == 0x0a then getch; c = "\r\n" end
+        if nc == 0x0a then getch; c = UString.new("\r\n") end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
       when 0x20
@@ -131,32 +156,31 @@ module UdonParser
     def eof?() return @last_c == :eof end
 
     def document(p=nil,name='document')
-      state=':data_or_child'
-      s = []
+      __state=':data_or_child'
+      s = UArray.new
       a ||= UString.new
       b ||= UString.new
-      trash ||= UString.new
       loop do
-        c = nextchar
-        state = '{eof}' if c==:eof
-        case state
+        __i = nextchar
+        __state = '{eof}' if __i==:eof
+        case __state
         when ':data_or_child'
             case
-            when nl?; @fwd=true; (a<<b if b.size>0); b=UString.new; state=':data'; next
-            when space?; b<<c; next
-            when c==35,c==124; @fwd=true; (trash<<b if b.size>0); b=UString.new; state=':child'; next
-            else @fwd=true; (a<<b if b.size>0); b=UString.new; state=':data'; next
+            when nl?; @fwd=true; b.into(a); __state=':data'; next
+            when space?; __i.into(b); next
+            when __i==35,__i==124; @fwd=true; b.reset!; __state=':child'; next
+            else @fwd=true; b.into(a); __state=':data'; next
             end
         when ':child'
-            if c==35
-              @fwd=true; (s<<a if a.size>0); a=UString.new; state=comment(':data_or_child',s); next
+            if __i==35
+              @fwd=true; a.into(s); __state=comment(':data_or_child',s); next
             end
         when '{eof}'
-            @fwd=true; (a<<b if b.size>0); b=UString.new; (s<<a if a.size>0); a=UString.new; return(s)
+            @fwd=true; b.into(a); a.into(s); return(s)
         when ':data'
             case
-            when nl?; a<<c; (s<<a if a.size>0); a=UString.new; state=':data_or_child'; next
-            else a<<c; next
+            when nl?; __i.into(a); a.into(s); __state=':data_or_child'; next
+            else __i.into(a); next
             end
         end
       end
@@ -165,37 +189,37 @@ module UdonParser
     def comment(ns,p=nil,name='comment')
       ipar=@indent
       ibase=ipar+100
-      state=':1st:ws'
+      __state=':1st:ws'
       s = UNode.new(:name=>name,:sline=>@line,:schr=>@pos)
       a ||= UString.new
       loop do
-        c = nextchar
-        state = '{eof}' if c==:eof
-        case state
+        __i = nextchar
+        __state = '{eof}' if __i==:eof
+        case __state
         when ':nl'
             case
-            when (@indent>ibase); @fwd=true; state=':child'; next
-            when nl?,(c>8&&c<11),space?; next
-            when (@indent<=ipar); @fwd=true; p<<s; return(ns)
-            else a<<c; ibase = @indent; state=':child'; next
+            when (@indent>ibase); @fwd=true; __state=':child'; next
+            when nl?,(__i>8&&__i<11),space?; next
+            when (@indent<=ipar); @fwd=true; s.into(p); return(ns)
+            else __i.into(a); ibase = @indent; __state=':child'; next
             end
         when ':child'
             case
-            when nl?; (s<<a if a.size>0); a=UString.new; state=':nl'; next
-            else a<<c; next
+            when nl?; a.into(s); __state=':nl'; next
+            else __i.into(a); next
             end
         when ':1st'
             case
-            when nl?; (s<<a if a.size>0); a=UString.new; state=':nl'; next
-            else a<<c; next
+            when nl?; a.into(s); __state=':nl'; next
+            else __i.into(a); next
             end
         when '{eof}'
-            @fwd=true; (s<<a if a.size>0); a=UString.new; p<<s; return(ns)
+            @fwd=true; a.into(s); s<<p; return(ns)
         when ':1st:ws'
             case
-            when c==9,space?; next
-            when nl?; state=':nl'; next
-            else a<<c; state=':1st'; next
+            when __i==9,space?; next
+            when nl?; __state=':nl'; next
+            else __i.into(a); __state=':1st'; next
             end
         end
       end
