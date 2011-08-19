@@ -9,6 +9,16 @@ module UdonParser
     def <<(kv) k,v = kv; self[k] = v end
   end
 
+  class UString < String
+    def <<(v)
+      begin
+        super([v].pack('U*'))
+      rescue
+        super(v)
+      end
+    end
+  end
+
   class UNode
     attr_accessor :name, :m,:a,:c
     def initialize(params={})
@@ -51,10 +61,10 @@ module UdonParser
         b = source
         source =
           case
-          when b.size >= 4 && b[0] == 0 && b[1] == 0 && b[2] == 0; JSON.iconv('utf-8', 'utf-32be', b)
-          when b.size >= 4 && b[0] == 0 && b[2] == 0; JSON.iconv('utf-8', 'utf-16be', b)
-          when b.size >= 4 && b[1] == 0 && b[2] == 0 && b[3] == 0; JSON.iconv('utf-8', 'utf-32le', b)
-          when b.size >= 4 && b[1] == 0 && b[3] == 0; JSON.iconv('utf-8', 'utf-16le', b)
+          when b.size >= 4 && b[0] == 0 && b[1] == 0 && b[2] == 0; Iconv.iconv('utf-8', 'utf-32be', b)
+          when b.size >= 4 && b[0] == 0 && b[2] == 0; Iconv.iconv('utf-8', 'utf-16be', b)
+          when b.size >= 4 && b[1] == 0 && b[2] == 0 && b[3] == 0; Iconv.iconv('utf-8', 'utf-32le', b)
+          when b.size >= 4 && b[1] == 0 && b[3] == 0; Iconv.iconv('utf-8', 'utf-16le', b)
           else b end
       end
       return source
@@ -86,12 +96,12 @@ module UdonParser
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
       when 0x0a
-        nc = peek(1).unpack('U')[0]
+        nc = peek(4).unpack('U')[0]
         if nc == 0x0d then getch; c = "\n\r" end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
       when 0x0d
-        nc = peek(1).unpack('U')[0]
+        nc = peek(4).unpack('U')[0]
         if nc == 0x0a then getch; c = "\r\n" end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
@@ -121,48 +131,34 @@ module UdonParser
     def eof?() return @last_c == :eof end
 
     def document(p=nil,name='document')
-      state=':data'
+      state=':data_or_child'
       s = []
-      a ||= ''
-      b ||= ''
-      trash ||= ''
+      a ||= UString.new
+      b ||= UString.new
+      trash ||= UString.new
       loop do
         c = nextchar
         state = '{eof}' if c==:eof
         case state
-        when ':child'
+        when ':data_or_child'
             case
-            when nl?,(c>8&&c<11),space?; b<<c; next
-            when c==35; (trash<<b if b.size>0); b=''; state=comment(':data',s); next
-            when c==124; (trash<<b if b.size>0); b=''; state=node(':data',s); next
-            else b<<c; (a<<b if b.size>0); b=''; state=':data'; next
+            when nl?; @fwd=true; (a<<b if b.size>0); b=UString.new; state=':data'; next
+            when space?; b<<c; next
+            when c==35,c==124; @fwd=true; (trash<<b if b.size>0); b=UString.new; state=':child'; next
+            else @fwd=true; (a<<b if b.size>0); b=UString.new; state=':data'; next
+            end
+        when ':child'
+            if c==35
+              @fwd=true; (s<<a if a.size>0); a=UString.new; state=comment(':data_or_child',s); next
             end
         when '{eof}'
-            (s<<a if a.size>0); a=''; return(s)
+            @fwd=true; (a<<b if b.size>0); b=UString.new; (s<<a if a.size>0); a=UString.new; return(s)
         when ':data'
             case
-            when nl?; a<<c; (s<<a if a.size>0); a=''; state=':child'; next
+            when nl?; a<<c; (s<<a if a.size>0); a=UString.new; state=':data_or_child'; next
             else a<<c; next
             end
         end
-      end
-    end
-
-    def to_nextline(ns,p=nil,name='to_nextline')
-      state=':scan'
-      loop do
-        c = nextchar
-        case state
-        when ':scan'
-            case
-            when (eof?); @fwd=true; return(ns)
-            when nl?; @fwd=true; return(ns)
-            when !eof?; next
-            end
-        end
-        error("Unexpected #{c}")
-        @fwd = true
-        return
       end
     end
 
@@ -171,7 +167,7 @@ module UdonParser
       ibase=ipar+100
       state=':1st:ws'
       s = UNode.new(:name=>name,:sline=>@line,:schr=>@pos)
-      a ||= ''
+      a ||= UString.new
       loop do
         c = nextchar
         state = '{eof}' if c==:eof
@@ -185,16 +181,16 @@ module UdonParser
             end
         when ':child'
             case
-            when nl?; (s<<a if a.size>0); a=''; state=':nl'; next
+            when nl?; (s<<a if a.size>0); a=UString.new; state=':nl'; next
             else a<<c; next
             end
         when ':1st'
             case
-            when nl?; (s<<a if a.size>0); a=''; state=':nl'; next
+            when nl?; (s<<a if a.size>0); a=UString.new; state=':nl'; next
             else a<<c; next
             end
         when '{eof}'
-            @fwd=true; (s<<a if a.size>0); a=''; p<<s; return(ns)
+            @fwd=true; (s<<a if a.size>0); a=UString.new; p<<s; return(ns)
         when ':1st:ws'
             case
             when c==9,space?; next

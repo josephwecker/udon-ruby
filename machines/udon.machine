@@ -1,25 +1,25 @@
  Main entrypoint - a complete udon document
-+-----------------+----------+-----+----------------+----------------+
-| document()::[]  |          |     |                | :data          |
-| :data           | [\n]     | a<< | s<<<a          | :child         |
-| :data           | .        | a<< |                | :data          |
-| :child          | [\s\t\n] | b<< |                | :child         |
-| :child          | [#]      | <<  | trash<<<b      | comment(:data) |
-| :child          | [|]      | <<  | trash<<<b      | node(:data)    |
-| :child          | .        | b<< | a<<<b          | :data          |
-| {eof}           |          | <<  | s<<<a          | <done>         |
-+-----------------+----------+-----+----------------+----------------+
-#| :ws             | [\s\t\n] | a<< |                | :ws          |
-#| :ws             |          |     | s<<<a          | :child       |
+
++-----------------+----------+-----+----------------+-------------------------+
+| document()::[]  |          |     |                | :data_or_child          |
+| :data_or_child  | [\n]     |     | a<<<b          | :data                   |
+| :data_or_child  | [ ]      | b<< |                | :data_or_child          |
+| :data_or_child  | [#|]     |     | trash<<<b      | :child                  |
+| :data_or_child  | .        |     | a<<<b          | :data                   |
+
+| :data           | [\n]     | a<< | s<<<a          | :data_or_child          |
+| :data           | .        | a<< |                | :data                   |
+| :child          | [#]      |     | s<<<a          | comment(:data_or_child) |
+| {eof}           |          |     | a<<<b; s<<<a   | <done>                  |
 # TODO: lots more children
 
  For error recovery (go to the next line)
-+-----------------+----------+-----+----------------+--------------+
-| to_nextline(ns) |          |     |                | :scan        |
-| :scan           | {eof?}   |     |                | <ns>         |
-| :scan           | [\n]     |     |                | <ns>         |
-| :scan           | .        | <<  |                | :scan        |
-+-----------------+----------+-----+----------------+--------------+
+#+-----------------+----------+-----+----------------+--------------+
+#| to_nextline(ns) |          |     |                | :scan        |
+#| :scan           | {eof?}   |     |                | <ns>         |
+#| :scan           | [\n]     |     |                | <ns>         |
+#| :scan           | .        | <<  |                | :scan        |
+#+-----------------+----------+-----+----------------+--------------+
 
  Block comments
 +-----------------+-----------------+-----+-----------------+--------------+
