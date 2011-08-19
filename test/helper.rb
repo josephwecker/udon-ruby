@@ -27,13 +27,16 @@ class Array
   def gcd; inject(){|n1,n2| n1.gcd(n2)} end
 end
 
-def poisson(mean)
-  el = Math.exp(-mean); k = 0; p = 1
-  begin
-    k += 1
-    p = p * rand
-  end while p > el
-  return k - 1
+
+def gaussian(mean, stddev)
+  theta = 2 * Math::PI * rand
+  rho = Math.sqrt(-2 * Math.log(1 - rand))
+  scale = stddev * rho
+  if rand >= 0.5
+    return mean + scale * Math.cos(theta)
+  else
+    return mean + scale * Math.sin(theta)
+  end
 end
 
 def randstr(avg_length, char_dists = [[0.1,' '],[0.1,('A'..'Z')],[0.8,('a'..'z')]])
@@ -57,7 +60,8 @@ def randstr(avg_length, char_dists = [[0.1,' '],[0.1,('A'..'Z')],[0.8,('a'..'z')
       raise ArgumentError, 'Ranges and strings only'
     end
   end
-  (0..poisson(avg_length)).each do
+  len = [gaussian(avg_length,avg_length/3.0).round, 0].max
+  (0..len).each do
     range_sel = rand
     prob_sum = 0.0
     chrs.each do |prob,cr|
