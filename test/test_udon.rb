@@ -46,8 +46,7 @@ class TestUdon < MiniTest::Unit::TestCase
 
       # comment 2
      COMMENT
-    s = (leading + comment + following)
-    r = s.udon
+    r = (leading + comment + following).udon
     lines = r[-2].c
     ##############
     assert_instance_of   UdonParser::UNode,     r[-2]
@@ -63,7 +62,21 @@ class TestUdon < MiniTest::Unit::TestCase
   end
 
   def test_block_comment_in_passthru
-    leading = randstr(200)
-    following = randstr(200)
+    leading = randstr(200).gsub(TRIGGER_UDON,'') + "\n"
+    following = randstr(200).gsub(TRIGGER_UDON,'')
+    comment = <<-COMMENT
+      # the-comment
+      and back to normal
+    COMMENT
+    r = (leading + comment + following).udon
+    # Find the comment
+    found_i = nil
+    r.each_with_index{|c,i| if c.is_a?(UdonParser::UNode) then found_i=i; break end}
+    ##############
+    refute_nil           found_i
+    assert               found_i < r.size
+    assert               found_i > 0
+    assert_equal         'comment',             r[found_i].name
+    ##############
   end
 end
