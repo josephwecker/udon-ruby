@@ -130,7 +130,7 @@ module UdonParser
         if nc == 0x0a then getch; c = UString.new("\r\n") end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
-      when 0x20
+      when 0x20,0x09
         @indent += 1 if @leading
         @last_is_space = true; @pos += 1
       else @leading = false; @pos += 1 end
@@ -167,13 +167,13 @@ module UdonParser
         when ':data_or_child'
             case
             when nl?; @fwd=true; b.into(a); __state=':data'; next
-            when space?; __i.into(b); next
+            when __i==9,space?; __i.into(b); next
             when __i==35,__i==124; @fwd=true; b.reset!; __state=':child'; next
             else @fwd=true; b.into(a); __state=':data'; next
             end
         when ':child'
             if __i==35
-              @fwd=true; a.into(s); __state=comment(':data_or_child',s); next
+              a.into(s); __state=comment(':data_or_child',s); next
             end
         when '{eof}'
             @fwd=true; b.into(a); a.into(s); return(s)
@@ -187,39 +187,35 @@ module UdonParser
     end
 
     def comment(ns,p=nil,name='comment')
+      ibase=@indent+1
       ipar=@indent
-      ibase=ipar+100
-      __state=':1st:ws'
+      __state=':first:ws'
       s = UNode.new(:name=>name,:sline=>@line,:schr=>@pos)
       a ||= UString.new
       loop do
         __i = nextchar
         __state = '{eof}' if __i==:eof
         case __state
+        when ':first:ws'
+            case
+            when __i==9,space?; ibase += 1; next
+            when nl?; __state=':nl'; next
+            else __i.into(a); __state=':data'; next
+            end
         when ':nl'
             case
-            when (@indent>ibase); @fwd=true; __state=':child'; next
-            when nl?,(__i>8&&__i<11),space?; next
+            when (@indent>ibase); @fwd=true; __state=':data'; next
+            when __i==9,space?; next
+            when nl?; __i.into(a); a.into(s); next
             when (@indent<=ipar); @fwd=true; s.into(p); return(ns)
-            else __i.into(a); ibase = @indent; __state=':child'; next
-            end
-        when ':child'
-            case
-            when nl?; a.into(s); __state=':nl'; next
-            else __i.into(a); next
-            end
-        when ':1st'
-            case
-            when nl?; a.into(s); __state=':nl'; next
-            else __i.into(a); next
+            else __i.into(a); ibase=@indent; __state=':data'; next
             end
         when '{eof}'
-            @fwd=true; a.into(s); s<<p; return(ns)
-        when ':1st:ws'
+            @fwd=true; a.into(s); s.into(p); return(ns)
+        when ':data'
             case
-            when __i==9,space?; next
-            when nl?; __state=':nl'; next
-            else __i.into(a); __state=':1st'; next
+            when nl?; a.into(s); __state=':nl'; next
+            else __i.into(a); next
             end
         end
       end
