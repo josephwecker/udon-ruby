@@ -77,6 +77,8 @@ class TestUdon < MiniTest::Unit::TestCase
     assert               found_i < r.size
     assert               found_i > 0
     assert_equal         'comment',             r[found_i].name
+    assert_equal         leading,               r[0..(found_i-1)].join('')
+    assert_equal         following,             r[(found_i+2)..-1].join('')
     ##############
   end
 end
