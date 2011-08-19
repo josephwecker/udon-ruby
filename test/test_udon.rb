@@ -4,7 +4,7 @@ $KCODE='U'
 class TestUdon < MiniTest::Unit::TestCase
   def test_blank_documents
     assert_equal(''.udon,[])
-    (0..5).each do
+    (0..3).each do
       s = randstr(200,"      \t\n\r")
       assert_equal(s.udon.join(''),s)
     end
@@ -19,9 +19,9 @@ class TestUdon < MiniTest::Unit::TestCase
              [0.075, (32..126)],
              [0.05,  (0..255)],
              [0.025, (0..0xffff)]]
-    (0..5).each do
-      s = randstr(500,chars)
-      s.gsub! /^\s*(<\||#|\|)/u, ''
+    (0..3).each do
+      s = randstr(100,chars)
+      s.gsub! /^\s*(<\||#|\|)/u, '' # Remove stuff that triggers udon mode
       assert_equal(s.udon.join(''),s)
     end
   end
