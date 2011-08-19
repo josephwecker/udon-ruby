@@ -2,12 +2,15 @@ require 'helper'
 $KCODE='U'
 
 class TestUdon < MiniTest::Unit::TestCase
+  TRIGGER_UDON = /^\s*(<\||#|\|).*?\n/u
+  WHITESPACE   = "      \t\n\r"
+
   def test_blank_documents
     ##############
     assert_equal         [],                    ''.udon
     ##############
     (0..3).each do
-      s = randstr(200,"      \t\n\r")
+      s = randstr(200,WHITESPACE)
       ##############
       assert_equal       s,                     s.udon.join('')
       ##############
@@ -16,8 +19,7 @@ class TestUdon < MiniTest::Unit::TestCase
 
   def test_passthru_documents
     (0..3).each do
-      s = randstr(100)
-      s.gsub! /^\s*(<\||#|\|)/u, '' # Remove stuff that triggers udon mode
+      s = randstr(100).gsub(TRIGGER_UDON,'')
       ##############
       assert_equal       s,                     s.udon.join('')
       ##############
@@ -33,7 +35,8 @@ class TestUdon < MiniTest::Unit::TestCase
   end
 
   def test_block_comment_indent_level_with_leading
-    leading = randstr(200,"      \t\n\r") + "\n"
+    leading = randstr(200,WHITESPACE) + "\n"
+    following = randstr(200,WHITESPACE)
     comment = <<-COMMENT
       #  line 0
          line 1
@@ -43,7 +46,6 @@ class TestUdon < MiniTest::Unit::TestCase
 
       # comment 2
      COMMENT
-    following = randstr(200,"     \t\n\r")
     s = (leading + comment + following)
     r = s.udon
     lines = r[-2].c
@@ -61,6 +63,7 @@ class TestUdon < MiniTest::Unit::TestCase
   end
 
   def test_block_comment_in_passthru
-
+    leading = randstr(200)
+    following = randstr(200)
   end
 end
