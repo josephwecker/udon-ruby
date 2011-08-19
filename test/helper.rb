@@ -1,3 +1,4 @@
+$KCODE = 'U'
 require 'rubygems'
 require 'bundler'
 begin
@@ -7,6 +8,7 @@ rescue Bundler::BundlerError => e
   $stderr.puts "Run `bundle install` to install missing gems"
   exit e.status_code
 end
+require 'iconv'
 require 'minitest/unit'
 require 'minitest/autorun'
 require 'minitest/pride'
@@ -66,7 +68,10 @@ def randstr(avg_length, char_dists = [[0.1,' '],[0.1,('A'..'Z')],[0.8,('a'..'z')
       end
     end
   end
-  return ret
+  # (To fix iconv bug: cr http://po-ru.com/diary/fixing-invalid-utf-8-in-ruby-revisited/ )
+  ret = ret + ' '
+  Iconv.iconv('UTF-8//IGNORE', 'UTF-8', ret)
+  return ret[0..-2]
 end
 
 class MiniTest::Unit::TestCase
