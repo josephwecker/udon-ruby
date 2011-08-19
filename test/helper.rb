@@ -54,8 +54,10 @@ def randstr(avg_length, char_dists = [[0.1,' '],[0.1,('A'..'Z')],[0.8,('a'..'z')
       else [k, ch] end
     elsif ch.is_a?(Integer)
       [k, (ch..ch)]
-    elsif ch.is_a?(String)
+    elsif ch.is_a?(String) && ch.scan(/./u).length == 1
       [k, ((ch.unpack('U')[0])..(ch.unpack('U')[0]))]
+    elsif ch.is_a?(String)
+      [k, ch.unpack('U*')]
     else
       raise ArgumentError, 'Ranges and strings only'
     end
@@ -67,7 +69,11 @@ def randstr(avg_length, char_dists = [[0.1,' '],[0.1,('A'..'Z')],[0.8,('a'..'z')
     chrs.each do |prob,cr|
       prob_sum += prob
       if prob_sum > range_sel
-        ret << [(cr.min + rand(cr.max - cr.min + 1))].pack('U')
+        if cr.is_a?(Range)
+          ret << [(cr.min + rand(cr.max - cr.min + 1))].pack('U')
+        else
+          ret << cr[rand(cr.length)]
+        end
         break
       end
     end
