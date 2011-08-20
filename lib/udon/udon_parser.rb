@@ -3,6 +3,7 @@ $KCODE="U"
 
 class Integer
   def into(v); v << self end
+  def into!(v); into(v) end
   def reset!; :nop end
   def reset; :nop end
 end
@@ -13,15 +14,14 @@ module UdonParser
 
 
   class UArray < Array
-    def into(v)
-      return if size == 0
-      v << self
-    end
+    def into(v); into!(v) unless size == 0 end
+    def into!(v); v << self end
     def reset!; self.clear end
     def reset; d=dup;d.reset!;d end
   end
 
   class UHash < Hash
+    def into!(v) v << self end
     def into(v) v << self end
     def <<(kv) k,v = kv; self[k] = v end
     def reset!; self.clear end
@@ -29,8 +29,8 @@ module UdonParser
   end
 
   class UString < String
-    def into(v)
-      return if size == 0
+    def into(v); into!(v) unless size == 0 end
+    def into!(v)
       v << self.dup
       reset!
     end
@@ -53,6 +53,7 @@ module UdonParser
       @c= params.delete(:c) || []
       @name = params.delete(:name)
     end
+    def into!(val) val << self end
     def into(val) val << self end
     def <<(val) @c<<val end
     def [](key) @c[key] end
@@ -155,7 +156,7 @@ module UdonParser
 
     def eof?() return @last_c == :eof end
 
-    def document(p=nil,name='document')
+    def document(p=nil,name=UString.new('document'))
       __state=':data_or_child'
       s = UArray.new
       a ||= UString.new
@@ -168,12 +169,13 @@ module UdonParser
             case
             when nl?; @fwd=true; b.into(a); __state=':data'; next
             when __i==9,space?; __i.into(b); next
-            when __i==35,__i==124; @fwd=true; b.reset!; __state=':child'; next
+            when __i==35,__i==124; @fwd=true; b.reset!; a.into(s); __state=':child'; next
             else @fwd=true; b.into(a); __state=':data'; next
             end
         when ':child'
-            if __i==35
-              a.into(s); __state=comment(':data_or_child',s); next
+            case
+            when __i==35; __state=comment(':data_or_child',s); next
+            when __i==124; __state=node(':data_or_child',s); next
             end
         when '{eof}'
             @fwd=true; b.into(a); a.into(s); return(s)
@@ -183,10 +185,13 @@ module UdonParser
             else __i.into(a); next
             end
         end
+        error("Unexpected #{__i}")
+        @fwd = true
+        return
       end
     end
 
-    def comment(ns,p=nil,name='comment')
+    def comment(ns,p=nil,name=UString.new('comment'))
       ibase=@indent+1
       ipar=@indent
       __state=':first:ws'
@@ -218,6 +223,95 @@ module UdonParser
             else __i.into(a); next
             end
         end
+      end
+    end
+
+    def node(ns,p=nil,name=UString.new('node'))
+      ipar=@indent
+      __state=':ident'
+      s = UNode.new(:name=>name,:sline=>@line,:schr=>@pos)
+      a ||= UString.new
+      loop do
+        __i = nextchar
+        case __state
+        when ':ident:child:nl'
+            if !eof?
+              @fwd=true; error('nyi'); return(ns)
+            end
+        when ':ident:child'
+            case
+            when (eof?); @fwd=true; a.into(s); return(ns)
+            when nl?; __i.into(a); a.into(s); __state=':ident:child:nl'; next
+            when !eof?; __i.into(a); next
+            end
+        when ':ident:a_or_c'
+            case
+            when (eof?); @fwd=true; a.into(s.c.last); return(ns)
+            when __i==58; a.reset!; s.c.pop.into(aname); __state=':ident:attr:val'; next
+            when __i==9,space?; __i.into(a); next
+            when nl?; __i.into(a); a.into(s.c.last); __state=':ident:nl'; next
+            when !eof?; __i.into(a); __state=':ident:child'; next
+            end
+        when ':ident'
+            case
+            when __i==9,space?; __state=':ident:nxt'; next
+            when nl?; __state=':ident:nl'; next
+            when (__i>45&&__i<48),__i==123; @fwd=true; __state=':ident:nxt'; next
+            when !eof?; @fwd=true; __state=cstr(':ident:nameret',s); next
+            end
+        when ':ident:attr:val'
+            if !eof?
+              @fwd=true; error('nyi'); return(ns)
+            end
+        when ':ident:nxt'
+            case
+            when (__i>45&&__i<48),__i==123; error('nyi'); return(ns)
+            when nl?; __state=':ident:nl'; next
+            when __i==9,space?; next
+            when !eof?; @fwd=true; __state=cstr(':ident:a_or_c',s); next
+            end
+        when ':ident:nameret'
+            @fwd=true; s.name.reset!; s.c.pop.into(s.name); __state=':ident:nxt'; next
+        when ':ident:nl'
+            case
+            when __i==9,space?; next
+            when nl?; next
+            when (@indent<=ipar); @fwd=true; s.into(p); return(ns)
+            when !eof?; @fwd=true; ibase=@indent; __state=':ident:nxt'; next
+            end
+        end
+        error("Unexpected #{__i}")
+        @fwd = true
+        return
+      end
+    end
+
+    def cstr(ns,p=nil,name=UString.new('cstr'))
+      __state=':first'
+      s = UArray.new
+      a ||= UString.new
+      loop do
+        __i = nextchar
+        case __state
+        when ':first'
+            case
+            when (eof?); @fwd=true; a.into!(p); return(ns)
+            when __i==34; __state=':dq-dat'; next
+            when __i==39; __state=':sq-dat'; next
+            when __i==96; __state=':bt-dat'; next
+            when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(ns)
+            when !eof?; __i.into(a); __state=':dat'; next
+            end
+        when ':dat'
+            case
+            when (eof?); @fwd=true; a.into!(p); return(ns)
+            when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(ns)
+            when !eof?; __i.into(a); next
+            end
+        end
+        error("Unexpected #{__i}")
+        @fwd = true
+        return
       end
     end
 
