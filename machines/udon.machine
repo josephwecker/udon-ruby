@@ -4,13 +4,14 @@
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :data_or_child  | [\n]            |     | b>>a           | :data                   |
 | :data_or_child  | [ \t]           | >>b |                | :data_or_child          |
-| :data_or_child  | [#|]            |     | b>>            | :child                  |
+| :data_or_child  | [#|]            |     | b>> ; a>>s     | :child                  |
 | :data_or_child  | .               |     | b>>a           | :data                   |
 +-----------------+-----------------+-----+----------------+-------------------------+
 | :data           | [\n]            | >>a | a>>s           | :data_or_child          |
 | :data           | .               | >>a |                | :data                   |
 +-----------------+-----------------+-----+----------------+-------------------------+
-| :child          | [#]             | >>  | a>>s           | comment(:data_or_child) |
+| :child          | [#]             | >>  |                | comment(:data_or_child) |
+| :child          | [|]             | >>  |                | node(:data_or_child)    |
 | {eof}           |                 |     | b>>a;  a>>s    | <done>                  |
 +-----------------+-----------------+-----+----------------+-------------------------+
 # TODO: lots more children
@@ -35,3 +36,36 @@
 +-----------------+-----------------+-----+----------------+-------------------------+
 | {eof}           |                 |     | a>>s; s>>p      | <ns>                   |
 +-----------------+-----------------+-----+-----------------+------------------------+
+
+ Nodes
++-----------------+-----------------+-----+-----------------+------------------------+
+| node(ns)::U     |                 |     | ipar=$indent    | :ident                 |
+:                 :                 :     :                 :                        :
++-----------------+-----------------+-----+-----------------+------------------------+
+| :ident          | [ \t]           | >>  |                 | :ident:nxt             |
+| :ident          | [\n]            | >>  |                 | :ident:nl              |
+| :ident          | [./{]           |     |                 | :ident:nxt             |
+| :ident          | .               |     |                 | cstr(:ident:nameret)   |
+| :ident:nameret  |                 |     | s.c.pop>>s.name | :ident:nxt             |
++-----------------+-----------------+-----+-----------------+------------------------+
+| :ident:nxt      | [./{]           | >>  | error('nyi')    | <ns>                   |
+| :ident:nxt      | [\n]            | >>  |                 | :ident:nl              |
+| :ident:nxt      | [ \t]           | >>  |                 | :ident:nxt             |
+| :ident:nxt      | .               |     |                 | cstr(:ident:a_or_c)    |
+
+| :ident:nl       | [ \t]           | >>  |                 | :ident:nl              |
+| :ident:nl       | [\n]            | >>  |                 | :ident:nl              |
+| :ident:nl       | {$indent<=ipar} |     | s>>p            | <ns>                   |
+| :ident:nl       | .               |     | ibase=$indent   | :ident:nxt             |
+
+| :ident:a_or_c   | [:]             | >>  | a>>             | :ident:attr:val        |
+:                 :                 :     : s.c.pop>>aname  :                        :
+| :ident:a_or_c   | [ \t]           | >>a |                 | :ident:a_or_c          |
+| :ident:a_or_c   | [\n]            | >>a | a>>s.c.last     | :ident:nl              | # was child
+| :ident:a_or_c   | {eof?}          |     | a>>s.c.last     | <ns>                   |
+| :ident:a_or_c   | .               | >>a |                 | :ident:child           |
+
+| :ident:child    | [\n]            | >>a |                 | :ident:child:nl        |
+| :ident:child    | {eof?}          YOU ARE HERE
+| :ident:child    | .               | >>a |                 | :ident:child           |
+

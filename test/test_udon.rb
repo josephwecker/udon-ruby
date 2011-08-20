@@ -2,7 +2,7 @@ require 'helper'
 $KCODE='U'
 
 class TestUdon < MiniTest::Unit::TestCase
-  TRIGGER_UDON = /^\s*(<\||#|\|).*?\n/u
+  TRIGGER_UDON = /(^\s*(#|\|).*?\n|<\||<:)/u
   WHITESPACE   = "      \t\n\r"
 
   def test_blank_documents
@@ -81,4 +81,39 @@ class TestUdon < MiniTest::Unit::TestCase
     assert_equal         following,             r[(found_i+2)..-1].join('')
     ##############
   end
+
+  def test_simple_node
+    r = "asdf\n|the-node\nasdf".udon_pp
+    ##############
+    assert_instance_of   UdonParser::UNode,     r[1]
+    assert_equal         'the-node',            r[1].name
+    assert_equal         "asdf\n",              r[0]
+    assert_equal         "asdf\n",              r[2]
+    ##############
+  end
+
+SCRATCH=<<-SCRATCH
+
+|one         # Sets ipar
+ a:b         # no base
+   c:d       # no base
+  e:f        # no base
+      g h i  # sets base to indent
+
+|one blah    # Sets ipar to indent
+  asdf       # sets base to indent
+
+# SO: first non-ident non-inline child sets base (or its own ipar)
+
+
+
+|asdf
+  `howdy fejw ioafj weifj <:oawj:> fa weoi`: kvjjfejiwo
+  `howdy fejw ioafj weifj <:oawj:> fa weoi` kvjjfejiwo
+
+
+
+
+SCRATCH
+
 end
