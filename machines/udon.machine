@@ -42,30 +42,51 @@
 | node(ns)::U     |                 |     | ipar=$indent    | :ident                 |
 :                 :                 :     :                 :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
+#| :ident          | {eof?}          |     | error('er1')    | <ns>                   |
 | :ident          | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident          | [\n]            | >>  |                 | :ident:nl              |
 | :ident          | [./{]           |     |                 | :ident:nxt             |
 | :ident          | .               |     |                 | cstr(:ident:nameret)   |
-| :ident:nameret  |                 |     | s.c.pop>>s.name | :ident:nxt             |
+| :ident:nameret  |                 |     | s.name>>        | :ident:nxt             |
+:                 :                 :     : s.c.pop>>s.name :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
+#| :ident:nxt      | {eof?}          |     | error('er2')    | <ns>                   |
 | :ident:nxt      | [./{]           | >>  | error('nyi')    | <ns>                   |
 | :ident:nxt      | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nxt      | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident:nxt      | .               |     |                 | cstr(:ident:a_or_c)    |
-
++-----------------+-----------------+-----+-----------------+------------------------+
+#| :ident:nl       | {eof?}          |     | error('er3')    | <ns>                   |
 | :ident:nl       | [ \t]           | >>  |                 | :ident:nl              |
 | :ident:nl       | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nl       | {$indent<=ipar} |     | s>>p            | <ns>                   |
 | :ident:nl       | .               |     | ibase=$indent   | :ident:nxt             |
-
++-----------------+-----------------+-----+-----------------+------------------------+
+| :ident:a_or_c   | {eof?}          |     | a>>s.c.last     | <ns>                   |
 | :ident:a_or_c   | [:]             | >>  | a>>             | :ident:attr:val        |
 :                 :                 :     : s.c.pop>>aname  :                        :
 | :ident:a_or_c   | [ \t]           | >>a |                 | :ident:a_or_c          |
 | :ident:a_or_c   | [\n]            | >>a | a>>s.c.last     | :ident:nl              | # was child
-| :ident:a_or_c   | {eof?}          |     | a>>s.c.last     | <ns>                   |
 | :ident:a_or_c   | .               | >>a |                 | :ident:child           |
-
-| :ident:child    | [\n]            | >>a |                 | :ident:child:nl        |
-| :ident:child    | {eof?}          YOU ARE HERE
++-----------------+-----------------+-----+-----------------+------------------------+
+| :ident:child    | {eof?}          |     | a>>s            | <ns>                   |
+| :ident:child    | [\n]            | >>a | a>>s            | :ident:child:nl        |
 | :ident:child    | .               | >>a |                 | :ident:child           |
++-----------------+-----------------+-----+-----------------+------------------------+
+| :ident:child:nl | .               |     | error('nyi')    | <ns>                   |
+| :ident:attr:val | .               |     | error('nyi')    | <ns>                   |
++-----------------+-----------------+-----+-----------------+------------------------+
 
+ Basic Control Strings
++-----------------+-----------------+-----+-----------------+------------------------+
+| cstr(ns)        |                 |     |                 | :first                 |
+| :first          | {eof?}          |     | a>>>p           | <ns>                   |
+| :first          | ["]             | >>  |                 | :dq-dat                |
+| :first          | [']             | >>  |                 | :sq-dat                |
+| :first          | [`]             | >>  |                 | :bt-dat                |
+| :first          | [ \t\n]         |     | a>>>p           | <ns>                   |
+| :first          | .               | >>a |                 | :dat                   |
+
+| :dat            | {eof?}          |     | a>>>p           | <ns>                   |
+| :dat            | [ \t\n]         |     | a>>>p           | <ns>                   |
+| :dat            | .               | >>a |                 | :dat                   |

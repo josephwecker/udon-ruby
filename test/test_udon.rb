@@ -83,12 +83,12 @@ class TestUdon < MiniTest::Unit::TestCase
   end
 
   def test_simple_node
-    r = "asdf\n|the-node\nasdf".udon_pp
+    r = "asdf\n|the-node\nasdf".udon
     ##############
     assert_instance_of   UdonParser::UNode,     r[1]
     assert_equal         'the-node',            r[1].name
     assert_equal         "asdf\n",              r[0]
-    assert_equal         "asdf",              r[2]
+    assert_equal         "asdf",                r[2]
     ##############
   end
 
