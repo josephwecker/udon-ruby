@@ -2,7 +2,7 @@ require 'helper'
 $KCODE='U'
 
 class TestUdon < MiniTest::Unit::TestCase
-  TRIGGER_UDON = /(^\s*(#|\|).*?\n|<\||<:)/u
+  TRIGGER_UDON = /(^\s*(#|\|).*\n|<\||<:)/um
   WHITESPACE   = "      \t\n\r"
 
   def test_blank_documents
