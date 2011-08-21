@@ -92,6 +92,28 @@ class TestUdon < MiniTest::Unit::TestCase
     ##############
   end
 
+  def test_node_name
+    ##############
+    assert_equal         'hello-there!',        '|hello-there!'.udon[0].name
+    assert_equal         "hello there!\t",      '|"hello there!\t"'.udon[0].name
+    assert_equal         'hello there!\t',      "|'hello there!\\t'".udon[0].name
+    assert_equal         'hello there!\t',      '|`hello there!\t`'.udon[0].name
+    ##############
+  end
+
+  def test_node_name_with_children
+    ##############
+    assert_equal         'hello-there!',        '|hello-there! c'.udon_pp[0].name
+    assert_equal         "hello there!\t",      '|"hello there!\t" c'.udon[0].name
+    assert_equal         'hello there!\t',      "|'hello there!\\t' c".udon[0].name
+    assert_equal         'hello there!\t',      '|`hello there!\t` c'.udon[0].name
+    assert_equal         'hello-there!',        "|hello-there!\nc".udon[0].name
+    assert_equal         "hello there!\t",      "|\"hello there!\\t\"\nc".udon[0].name
+    assert_equal         'hello there!\t',      "|'hello there!\\t'\nc".udon[0].name
+    assert_equal         'hello there!\t',      "|`hello there!\\t`\nc".udon[0].name
+    ##############
+  end
+
 SCRATCH=<<-SCRATCH
 
 |one         # Sets ipar

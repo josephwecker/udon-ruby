@@ -42,7 +42,7 @@
 | node(ns)::U     |                 |     | ipar=$indent    | :ident                 |
 :                 :                 :     :                 :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
-#| :ident          | {eof?}          |     | error('er1')    | <ns>                   |
+| :ident          | {eof?}          |     | error('er1')    | <ns>                   |
 | :ident          | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident          | [\n]            | >>  |                 | :ident:nl              |
 | :ident          | [./{]           |     |                 | :ident:nxt             |
@@ -50,13 +50,13 @@
 | :ident:nameret  |                 |     | s.name>>        | :ident:nxt             |
 :                 :                 :     : s.c.pop>>s.name :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
-#| :ident:nxt      | {eof?}          |     | error('er2')    | <ns>                   |
+| :ident:nxt      | {eof?}          |     | s>>p            | <ns>                   |
 | :ident:nxt      | [./{]           | >>  | error('nyi')    | <ns>                   |
 | :ident:nxt      | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nxt      | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident:nxt      | .               |     |                 | cstr(:ident:a_or_c)    |
 +-----------------+-----------------+-----+-----------------+------------------------+
-#| :ident:nl       | {eof?}          |     | error('er3')    | <ns>                   |
+| :ident:nl       | {eof?}          |     | error('er3')    | <ns>                   |
 | :ident:nl       | [ \t]           | >>  |                 | :ident:nl              |
 | :ident:nl       | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nl       | {$indent<=ipar} |     | s>>p            | <ns>                   |
@@ -90,3 +90,29 @@
 | :dat            | {eof?}          |     | a>>>p           | <ns>                   |
 | :dat            | [ \t\n]         |     | a>>>p           | <ns>                   |
 | :dat            | .               | >>a |                 | :dat                   |
+
+| :dq-dat         | [\\]            | >>  |                 | :dq-dat:esc            |
+| :dq-dat         | ["]             | >>  | a>>>p           | <ns>                   |
+| :dq-dat         | .               | >>a |                 | :dq-dat                |
+
+# TODO: move these to a separate metachar function?
+| :dq-dat:esc     | [t]             | >>  | "\t">>a         | :dq-dat                |
+| :dq-dat:esc     | [n]             | >>  | "\n">>a         | :dq-dat                |
+| :dq-dat:esc     | [r]             | >>  | "\r">>a         | :dq-dat                |
+| :dq-dat:esc     | [f]             | >>  | "\f">>a         | :dq-dat                |
+| :dq-dat:esc     | [b]             | >>  | "\b">>a         | :dq-dat                |
+| :dq-dat:esc     | [a]             | >>  | "\a">>a         | :dq-dat                |
+| :dq-dat:esc     | [e]             | >>  | "\e">>a         | :dq-dat                |
+| :dq-dat:esc     | [s]             | >>  | "\s">>a         | :dq-dat                |
+| :dq-dat:esc     | .               | >>a |                 | :dq-dat                |
+
+| :sq-dat         | [\\]            | >>  |                 | :sq-dat:esc            |
+| :sq-dat         | [']             | >>  | a>>>p           | <ns>                   |
+| :sq-dat         | .               | >>a |                 | :sq-dat                |
+
+| :sq-dat:esc     | [\\]            | >>a |                 | :sq-dat                |
+| :sq-dat:esc     | [']             | >>a |                 | :sq-dat                |
+| :sq-dat:esc     | .               | >>b | '\\'>>a; b>>a   | :sq-dat                |
+
+| :bt-dat         | [`]             | >>  | a>>>p           | <ns>                   |
+| :bt-dat         | .               | >>a |                 | :bt-dat                |
