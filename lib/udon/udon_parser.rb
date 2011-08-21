@@ -191,7 +191,7 @@ module UdonParser
       end
     end
 
-    def comment(ns,p=nil,name='comment')
+    def comment(retstate,p=nil,name='comment')
       ibase=@indent+1
       ipar=@indent
       __state=':first:ws'
@@ -212,11 +212,11 @@ module UdonParser
             when (@indent>ibase); @fwd=true; __state=':data'; next
             when __i==9,space?; next
             when nl?; __i.into(a); a.into(s); next
-            when (@indent<=ipar); @fwd=true; s.into(p); return(ns)
+            when (@indent<=ipar); @fwd=true; s.into(p); return(retstate)
             else __i.into(a); ibase=@indent; __state=':data'; next
             end
         when '{eof}'
-            @fwd=true; a.into(s); s.into(p); return(ns)
+            @fwd=true; a.into(s); s.into(p); return(retstate)
         when ':data'
             case
             when nl?; a.into(s); __state=':nl'; next
@@ -226,7 +226,7 @@ module UdonParser
       end
     end
 
-    def node(ns,p=nil,name='node')
+    def node(retstate,p=nil,name='node')
       ipar=@indent
       __state=':ident'
       s = UNode.new(:name=>name,:sline=>@line,:schr=>@pos)
@@ -236,17 +236,17 @@ module UdonParser
         case __state
         when ':ident:child:nl'
             if !eof?
-              @fwd=true; error('nyi'); return(ns)
+              @fwd=true; error('nyi'); return(retstate)
             end
         when ':ident:child'
             case
-            when (eof?); @fwd=true; a.into(s); return(ns)
+            when (eof?); @fwd=true; a.into(s); return(retstate)
             when nl?; __i.into(a); a.into(s); __state=':ident:child:nl'; next
             when !eof?; __i.into(a); next
             end
         when ':ident:a_or_c'
             case
-            when (eof?); @fwd=true; a.into(s.c.last); return(ns)
+            when (eof?); @fwd=true; a.into(s.c.last); return(retstate)
             when __i==58; a.reset!; s.c.pop.into(aname); __state=':ident:attr:val'; next
             when __i==9,space?; __i.into(a); next
             when nl?; __i.into(a); a.into(s.c.last); __state=':ident:nl'; next
@@ -254,7 +254,7 @@ module UdonParser
             end
         when ':ident'
             case
-            when (eof?); @fwd=true; error('er1'); return(ns)
+            when (eof?); @fwd=true; error('er1'); return(retstate)
             when __i==9,space?; __state=':ident:nxt'; next
             when nl?; __state=':ident:nl'; next
             when (__i>45&&__i<48),__i==123; @fwd=true; __state=':ident:nxt'; next
@@ -262,12 +262,12 @@ module UdonParser
             end
         when ':ident:attr:val'
             if !eof?
-              @fwd=true; error('nyi'); return(ns)
+              @fwd=true; error('nyi'); return(retstate)
             end
         when ':ident:nxt'
             case
-            when (eof?); @fwd=true; s.into(p); return(ns)
-            when (__i>45&&__i<48),__i==123; error('nyi'); return(ns)
+            when (eof?); @fwd=true; s.into(p); return(retstate)
+            when (__i>45&&__i<48),__i==123; error('nyi'); return(retstate)
             when nl?; __state=':ident:nl'; next
             when __i==9,space?; next
             when !eof?; @fwd=true; __state=cstr(':ident:a_or_c',s); next
@@ -276,10 +276,10 @@ module UdonParser
             @fwd=true; s.name.reset!; s.c.pop.into(s.name); __state=':ident:nxt'; next
         when ':ident:nl'
             case
-            when (eof?); @fwd=true; error('er3'); return(ns)
+            when (eof?); @fwd=true; error('er3'); return(retstate)
             when __i==9,space?; next
             when nl?; next
-            when (@indent<=ipar); @fwd=true; s.into(p); return(ns)
+            when (@indent<=ipar); @fwd=true; s.into(p); return(retstate)
             when !eof?; @fwd=true; ibase=@indent; __state=':ident:nxt'; next
             end
         end
@@ -289,7 +289,7 @@ module UdonParser
       end
     end
 
-    def cstr(ns,p=nil,name='cstr')
+    def cstr(retstate,p=nil,name='cstr')
       __state=':first'
       s = UArray.new
       a ||= ''
@@ -299,16 +299,16 @@ module UdonParser
         case __state
         when ':bt-dat'
             case
-            when __i==96; a.into!(p); return(ns)
+            when __i==96; a.into!(p); return(retstate)
             when !eof?; __i.into(a); next
             end
         when ':first'
             case
-            when (eof?); @fwd=true; a.into!(p); return(ns)
+            when (eof?); @fwd=true; a.into!(p); return(retstate)
             when __i==34; __state=':dq-dat'; next
             when __i==39; __state=':sq-dat'; next
             when __i==96; __state=':bt-dat'; next
-            when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(ns)
+            when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(retstate)
             when !eof?; __i.into(a); __state=':dat'; next
             end
         when ':dq-dat:esc'
@@ -326,13 +326,13 @@ module UdonParser
         when ':sq-dat'
             case
             when __i==92; __state=':sq-dat:esc'; next
-            when __i==39; a.into!(p); return(ns)
+            when __i==39; a.into!(p); return(retstate)
             when !eof?; __i.into(a); next
             end
         when ':dq-dat'
             case
             when __i==92; __state=':dq-dat:esc'; next
-            when __i==34; a.into!(p); return(ns)
+            when __i==34; a.into!(p); return(retstate)
             when !eof?; __i.into(a); next
             end
         when ':sq-dat:esc'
@@ -343,8 +343,8 @@ module UdonParser
             end
         when ':dat'
             case
-            when (eof?); @fwd=true; a.into!(p); return(ns)
-            when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(ns)
+            when (eof?); @fwd=true; a.into!(p); return(retstate)
+            when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(retstate)
             when !eof?; __i.into(a); next
             end
         end
