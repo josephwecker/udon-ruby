@@ -63,6 +63,7 @@
 | :ident:nl       | .               |     | ibase=$indent   | :ident:nxt             |
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :ident:a_or_c   | {eof?}          |     | a>>s.c.last     | <retstate>             |
+:                 :                 :     : s>>p            :                        :
 | :ident:a_or_c   | [:]             | >>  | a>>             | :ident:attr:val        |
 :                 :                 :     : s.c.pop>>aname  :                        :
 | :ident:a_or_c   | [ \t]           | >>a |                 | :ident:a_or_c          |
@@ -70,6 +71,7 @@
 | :ident:a_or_c   | .               | >>a |                 | :ident:child           |
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :ident:child    | {eof?}          |     | a>>s            | <retstate>             |
+:                 :                 :     : s>>p            :                        :
 | :ident:child    | [\n]            | >>a | a>>s            | :ident:child:nl        |
 | :ident:child    | .               | >>a |                 | :ident:child           |
 +-----------------+-----------------+-----+-----------------+------------------------+

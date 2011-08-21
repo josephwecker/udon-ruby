@@ -240,13 +240,13 @@ module UdonParser
             end
         when ':ident:child'
             case
-            when (eof?); @fwd=true; a.into(s); return(retstate)
+            when (eof?); @fwd=true; a.into(s); s.into(p); return(retstate)
             when nl?; __i.into(a); a.into(s); __state=':ident:child:nl'; next
             when !eof?; __i.into(a); next
             end
         when ':ident:a_or_c'
             case
-            when (eof?); @fwd=true; a.into(s.c.last); return(retstate)
+            when (eof?); @fwd=true; a.into(s.c.last); s.into(p); return(retstate)
             when __i==58; a.reset!; s.c.pop.into(aname); __state=':ident:attr:val'; next
             when __i==9,space?; __i.into(a); next
             when nl?; __i.into(a); a.into(s.c.last); __state=':ident:nl'; next
