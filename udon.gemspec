@@ -47,7 +47,7 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<rcov>, [">= 0"])
       s.add_development_dependency(%q<reek>, ["~> 1.2.8"])
       s.add_development_dependency(%q<roodi>, ["~> 2.1.0"])
-      s.add_development_dependency(%q<genmachine>, ["~> 0.2.2"])
+      s.add_development_dependency(%q<genmachine>, ["~> 0.2.3"])
     else
       s.add_dependency(%q<minitest>, [">= 0"])
       s.add_dependency(%q<bundler>, ["~> 1.0.0"])
@@ -55,7 +55,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<rcov>, [">= 0"])
       s.add_dependency(%q<reek>, ["~> 1.2.8"])
       s.add_dependency(%q<roodi>, ["~> 2.1.0"])
-      s.add_dependency(%q<genmachine>, ["~> 0.2.2"])
+      s.add_dependency(%q<genmachine>, ["~> 0.2.3"])
     end
   else
     s.add_dependency(%q<minitest>, [">= 0"])
@@ -64,7 +64,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<rcov>, [">= 0"])
     s.add_dependency(%q<reek>, ["~> 1.2.8"])
     s.add_dependency(%q<roodi>, ["~> 2.1.0"])
-    s.add_dependency(%q<genmachine>, ["~> 0.2.2"])
+    s.add_dependency(%q<genmachine>, ["~> 0.2.3"])
   end
 end
 
