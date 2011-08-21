@@ -8,6 +8,21 @@ class Integer
   def reset; :nop end
 end
 
+class String
+  def into(v); into!(v) unless size == 0 end
+  def into!(v); v << self.dup; reset!  end
+  def <<(v)
+    begin
+      concat([v].pack('U*'))
+    rescue
+      concat(v)
+    end
+  end
+  def reset!; self.gsub! /./um,'' end
+  def reset; d=dup;d.reset!;d end
+end
+
+
 module UdonParser
   def self.parse(str) Parser.new(str).parse end
   def self.parse_file(fname) Parser.new(IO.read(fname)).parse end
@@ -26,21 +41,6 @@ module UdonParser
     def <<(kv) k,v = kv; self[k] = v end
     def reset!; self.clear end
     def reset; d=dup; d.reset!; d end
-  end
-
-  class UString < String
-    def into(v); into!(v) unless size == 0 end
-    def into!(v)
-      v << self.dup
-      reset!
-    end
-
-    def <<(v)
-      begin; super([v].pack('U*'))
-      rescue; super(v) end
-    end
-    def reset!; self.gsub! /./um,'' end
-    def reset; d=dup;d.reset!;d end
   end
 
   class UNode
@@ -123,12 +123,12 @@ module UdonParser
         @leading = true; @indent = 0
       when 0x0a
         nc = peek(4).unpack('U')[0]
-        if nc == 0x0d then getch; c = UString.new("\n\r") end
+        if nc == 0x0d then getch; c = "\n\r" end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
       when 0x0d
         nc = peek(4).unpack('U')[0]
-        if nc == 0x0a then getch; c = UString.new("\r\n") end
+        if nc == 0x0a then getch; c = "\r\n" end
         @last_is_newline = true; @line += 1; @pos = 1
         @leading = true; @indent = 0
       when 0x20,0x09
@@ -156,11 +156,11 @@ module UdonParser
 
     def eof?() return @last_c == :eof end
 
-    def document(p=nil,name=UString.new('document'))
+    def document(p=nil,name='document')
       __state=':data_or_child'
       s = UArray.new
-      a ||= UString.new
-      b ||= UString.new
+      a ||= ''
+      b ||= ''
       loop do
         __i = nextchar
         __state = '{eof}' if __i==:eof
@@ -185,18 +185,18 @@ module UdonParser
             else __i.into(a); next
             end
         end
-        error("Unexpected #{__i}")
+        error("Unexpected \"#{[__i].pack("U*")}\"")
         @fwd = true
         return
       end
     end
 
-    def comment(ns,p=nil,name=UString.new('comment'))
+    def comment(ns,p=nil,name='comment')
       ibase=@indent+1
       ipar=@indent
       __state=':first:ws'
       s = UNode.new(:name=>name,:sline=>@line,:schr=>@pos)
-      a ||= UString.new
+      a ||= ''
       loop do
         __i = nextchar
         __state = '{eof}' if __i==:eof
@@ -226,11 +226,11 @@ module UdonParser
       end
     end
 
-    def node(ns,p=nil,name=UString.new('node'))
+    def node(ns,p=nil,name='node')
       ipar=@indent
       __state=':ident'
       s = UNode.new(:name=>name,:sline=>@line,:schr=>@pos)
-      a ||= UString.new
+      a ||= ''
       loop do
         __i = nextchar
         case __state
@@ -254,6 +254,7 @@ module UdonParser
             end
         when ':ident'
             case
+            when (eof?); @fwd=true; error('er1'); return(ns)
             when __i==9,space?; __state=':ident:nxt'; next
             when nl?; __state=':ident:nl'; next
             when (__i>45&&__i<48),__i==123; @fwd=true; __state=':ident:nxt'; next
@@ -265,6 +266,7 @@ module UdonParser
             end
         when ':ident:nxt'
             case
+            when (eof?); @fwd=true; s.into(p); return(ns)
             when (__i>45&&__i<48),__i==123; error('nyi'); return(ns)
             when nl?; __state=':ident:nl'; next
             when __i==9,space?; next
@@ -274,25 +276,32 @@ module UdonParser
             @fwd=true; s.name.reset!; s.c.pop.into(s.name); __state=':ident:nxt'; next
         when ':ident:nl'
             case
+            when (eof?); @fwd=true; error('er3'); return(ns)
             when __i==9,space?; next
             when nl?; next
             when (@indent<=ipar); @fwd=true; s.into(p); return(ns)
             when !eof?; @fwd=true; ibase=@indent; __state=':ident:nxt'; next
             end
         end
-        error("Unexpected #{__i}")
+        error("Unexpected \"#{[__i].pack("U*")}\"")
         @fwd = true
         return
       end
     end
 
-    def cstr(ns,p=nil,name=UString.new('cstr'))
+    def cstr(ns,p=nil,name='cstr')
       __state=':first'
       s = UArray.new
-      a ||= UString.new
+      a ||= ''
+      b ||= ''
       loop do
         __i = nextchar
         case __state
+        when ':bt-dat'
+            case
+            when __i==96; a.into!(p); return(ns)
+            when !eof?; __i.into(a); next
+            end
         when ':first'
             case
             when (eof?); @fwd=true; a.into!(p); return(ns)
@@ -302,6 +311,36 @@ module UdonParser
             when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(ns)
             when !eof?; __i.into(a); __state=':dat'; next
             end
+        when ':dq-dat:esc'
+            case
+            when __i==116; "\t".into(a); __state=':dq-dat'; next
+            when __i==110; "\n".into(a); __state=':dq-dat'; next
+            when __i==114; "\r".into(a); __state=':dq-dat'; next
+            when __i==102; "\f".into(a); __state=':dq-dat'; next
+            when __i==98; "\b".into(a); __state=':dq-dat'; next
+            when __i==97; "\a".into(a); __state=':dq-dat'; next
+            when __i==101; "\e".into(a); __state=':dq-dat'; next
+            when __i==115; "\s".into(a); __state=':dq-dat'; next
+            when !eof?; __i.into(a); __state=':dq-dat'; next
+            end
+        when ':sq-dat'
+            case
+            when __i==92; __state=':sq-dat:esc'; next
+            when __i==39; a.into!(p); return(ns)
+            when !eof?; __i.into(a); next
+            end
+        when ':dq-dat'
+            case
+            when __i==92; __state=':dq-dat:esc'; next
+            when __i==34; a.into!(p); return(ns)
+            when !eof?; __i.into(a); next
+            end
+        when ':sq-dat:esc'
+            case
+            when __i==92; __i.into(a); __state=':sq-dat'; next
+            when __i==39; __i.into(a); __state=':sq-dat'; next
+            when !eof?; __i.into(b); '\\'.into(a); b.into(a); __state=':sq-dat'; next
+            end
         when ':dat'
             case
             when (eof?); @fwd=true; a.into!(p); return(ns)
@@ -309,7 +348,7 @@ module UdonParser
             when !eof?; __i.into(a); next
             end
         end
-        error("Unexpected #{__i}")
+        error("Unexpected \"#{[__i].pack("U*")}\"")
         @fwd = true
         return
       end
