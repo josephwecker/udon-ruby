@@ -92,6 +92,13 @@ def randstr(avg_length, char_dists = nil)
   return ret[0..-2]
 end
 
+
+def udon_safe(str)
+  str.gsub! /^(\s*)(#|\|)/u, '\\1\\\\\2'
+  str.gsub! /(\||!)\{/u, '\\1{{'
+  str + "\n"
+end
+
 class MiniTest::Unit::TestCase
 end
 
