@@ -102,7 +102,7 @@ class MiniTest::Unit::TestCase
     str + "\n"
   end
 
-  def rand_cstring(len)
+  def rand_cstring(len=10)
     delim =(rand(2)==1 ? true : false)
     if delim
       rand_delimited_cstring(len)
@@ -125,13 +125,6 @@ class MiniTest::Unit::TestCase
         end
       else acc + [chr] end
     end
-      #acc.join('') =~ /(\\*)$/
-      #if ($1.length % 2) == 1
-      #  if chr == left then acc + ['\\', left]
-      #  elsif chr == right then acc + ['\\', right]
-      #  else acc + [chr] end
-      #else acc + [chr] end
-    #end
     # Inject some balanced parenthases
     (0..rand((len/5).round)).each do
       pos1 = rand(name.size)
@@ -141,7 +134,7 @@ class MiniTest::Unit::TestCase
       end
     end
     name << ' ' if name.last=='\\'
-    '(' + name.join('') + ')'
+    left + name.join('') + right
   end
 
   def unescaped_cstr(str,left='(',right=')')
@@ -157,8 +150,6 @@ class MiniTest::Unit::TestCase
       str = str.join('')
     end
     return str
-      #str = str.split /\\\\#{'\\'+d}/um
-      #str = str.map{|seg| seg.gsub(/\\#{'\\'+d}/um,d)}.join('\\'+d)
   end
 
   def rand_undelimited_cstring(len)
