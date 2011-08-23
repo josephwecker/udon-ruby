@@ -52,12 +52,14 @@
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :ident:nxt      | {eof?}          |     | s>>p            | <retstate>             |
 | :ident:nxt      | [\[]            | >>  |                 | idstr(:ident:idret)    |
-| :ident:nxt      | [.]             | >>  | error('nyi')    | <retstate>             |
+| :ident:nxt      | [.]             | >>  |                 | cstr(:ident:tagret)    |
 | :ident:nxt      | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nxt      | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident:nxt      | .               |     |                 | cstr(:ident:a_or_c)    |
 | :ident:idret    |                 |     | id=['id',s.c.pop] | :ident:nxt           |
 :                 :                 :     : id>>s.a         :                        : # two lines here because of genmachine defect
+| :ident:tagret   |                 |     | t=[s.c.pop,true] | :ident:nxt            |
+:                 :                 :     : t>>s.a          :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :ident:nl       | {eof?}          |     | error('er3')    | <retstate>             |
 | :ident:nl       | [ \t]           | >>  |                 | :ident:nl              |

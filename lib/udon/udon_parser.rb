@@ -252,6 +252,8 @@ module UdonParser
             when nl?; __i.into(a); a.into(s.c.last); __state=':ident:nl'; next
             when !eof?; __i.into(a); __state=':ident:child'; next
             end
+        when ':ident:tagret'
+            @fwd=true; t=[s.c.pop,true]; t.into(s.a); __state=':ident:nxt'; next
         when ':ident:idret'
             @fwd=true; id=['id',s.c.pop]; id.into(s.a); __state=':ident:nxt'; next
         when ':ident'
@@ -270,7 +272,7 @@ module UdonParser
             case
             when (eof?); @fwd=true; s.into(p); return(retstate)
             when __i==91; __state=idstr(':ident:idret',s); next
-            when __i==46; error('nyi'); return(retstate)
+            when __i==46; __state=cstr(':ident:tagret',s); next
             when nl?; __state=':ident:nl'; next
             when __i==9,space?; next
             when !eof?; @fwd=true; __state=cstr(':ident:a_or_c',s); next
