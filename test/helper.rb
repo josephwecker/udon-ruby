@@ -86,12 +86,15 @@ def randstr(avg_length, char_dists = nil)
       end
     end
   end
-  # (To fix iconv bug: cr http://po-ru.com/diary/fixing-invalid-utf-8-in-ruby-revisited/ )
-  ret = ret + ' '
-  Iconv.iconv('UTF-8//IGNORE', 'UTF-8', ret)
-  return ret[0..-2]
+  return fix_utf8(ret)
 end
 
+def fix_utf8(str)
+  # (To fix iconv bug: cr http://po-ru.com/diary/fixing-invalid-utf-8-in-ruby-revisited/ )
+  str = str + ' '
+  Iconv.iconv('UTF-8//IGNORE', 'UTF-8', str)
+  return str[0..-2]
+end
 
 def udon_safe(str)
   str.gsub! /^(\s*)(#|\|)/u, '\\1\\\\\2'
