@@ -12,5 +12,5 @@ group :development do
   gem "rcov", ">= 0"
   gem "reek", "~> 1.2.8"
   gem "roodi", "~> 2.1.0"
-  gem "genmachine", "~> 0.2.3"
+  gem "genmachine", "~> 0.2.4"
 end
