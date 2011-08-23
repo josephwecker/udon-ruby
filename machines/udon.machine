@@ -18,7 +18,7 @@
 
  Block comments
 +-----------------+-----------------+-----+-----------------+------------------------+
-| comment(retstate)::U |           |     | ibase=$indent+1 | :first:ws              |
+| comment(retstate)::U |            |     | ibase=$indent+1 | :first:ws              |
 :                 :                 :     : ipar=$indent    :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :first:ws       | [ \t]           | >>  | ibase += 1      | :first:ws              |
