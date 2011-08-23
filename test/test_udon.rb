@@ -92,16 +92,26 @@ class TestUdon < MiniTest::Unit::TestCase
   end
 
   def test_node_name_undelimited_cstring
-
-  end
-
-  def test_node_name_delimited_cstring
     (0..10).each do
       name = randstr(50).gsub(/ \[ | \( | \)
                               | \|
                               | \s | \n | \t | \r
                               | \.
                               /x,'')
+      assert_equal        name,                  "|#{name} a".udon_pp[0].name
+    end
+  end
+
+  def test_node_name_delimited_cstring
+    (0..10).each do
+      name = randstr(50).gsub(/\(|\)/,'')
+      # Inject some balanced parenthases
+      (0..rand(10)).each do
+        pos1 = rand(name.length)
+        pos2 = rand(name.length - pos1) + pos1
+        name = name.insert(pos2,')').insert(pos1,'(')
+      end
+      puts name
       assert_equal        name,                  "|#{name} a".udon_pp[0].name
     end
   end
