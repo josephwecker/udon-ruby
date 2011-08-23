@@ -92,7 +92,7 @@ class TestUdon < MiniTest::Unit::TestCase
   #----------------------------------------------------------------------------
   def test_node_name_undelimited_cstring
     assert_equal 'hello-there! friend', '|hello-there!\ friend a'.udon[0].name
-    (0..20).each do
+    (0..10).each do
       name = rand_undelimited_cstring(50)
       assert_equal name, "|#{name} a".udon[0].name
     end
@@ -103,7 +103,7 @@ class TestUdon < MiniTest::Unit::TestCase
     assert_equal ' (hello) ',    '|( (hello) ) a'.udon[0].name
     assert_equal ' (hello ',     '|( \\(hello ) a'.udon[0].name
     assert_equal '\\ \\(hello)', '|(\\ \\\\(hello)) a'.udon[0].name
-    (0..20).each do
+    (0..10).each do
       name = rand_delimited_cstring(50)
       assert_equal unescaped_cstr(name), "|#{name} a".udon[0].name
     end
@@ -115,7 +115,7 @@ class TestUdon < MiniTest::Unit::TestCase
     assert_equal 'my [id!]', "|this-node[my \[id!\]] a".udon[0].a['id']
     assert_equal 'my id!\\', "|this-node[my id!\\\\] a".udon[0].a['id']
     assert_equal 'my [id!]', "|this-node[my [id!]] a".udon[0].a['id']
-    (0..20).each do
+    (0..10).each do
       name = rand_cstring
       id = rand_delimited_cstring(50,'[',']')
       out_id = unescaped_cstr(id,'[',']')
@@ -132,6 +132,7 @@ class TestUdon < MiniTest::Unit::TestCase
     assert '|a-node[uid].awesome'.udon[0].a['awesome']
     assert '|a-node.awesome[uid]'.udon[0].a['awesome']
     assert '|a-node .awesome [uid]'.udon[0].a['awesome']
+    assert '|a-node .(awesome (isn\'t it?)) [uid]'.udon[0].a['awesome (isn\'t it?)']
     s = '|a-node [uid] .one .two.three a'
     assert s.udon[0].a['one']
     assert s.udon[0].a['two']
@@ -139,6 +140,18 @@ class TestUdon < MiniTest::Unit::TestCase
     assert_nil s.udon[0].a['four']
     assert_equal 'a', s.udon[0][0]
     assert_equal 'uid', s.udon[0].a['id']
+    (0..200).each do
+      tags = (0..(rand(10)+1)).map{rand_cstring}
+      tagpart = tags.map{|t| randstr(3," \t")+'.'+t}.join('')
+      case rand(3)
+      when 0; u = "|#{rand_cstring}#{tags} a"
+      when 1; u = "|#{rand_cstring}#{tags}#{id} a"
+      when 2; u = "|#{rand_cstring}#{id}#{tags} a"
+      end
+      u = u.udon
+      tags.each {|t| assert u[0].a[unescaped_cstr(t)]}
+      assert_equal 'a', u[0][0]
+    end
   end
 
 =begin

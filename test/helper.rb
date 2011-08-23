@@ -70,7 +70,7 @@ class MiniTest::Unit::TestCase
         raise ArgumentError, 'Ranges and strings only'
       end
     end
-    len = [gaussian(avg_length,avg_length/3.0).round, 0].max
+    len = [gaussian(avg_length,avg_length/2.0).round, 0].max
     (0..len).each do
       range_sel = rand
       prob_sum = 0.0
