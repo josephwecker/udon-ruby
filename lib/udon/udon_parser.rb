@@ -336,7 +336,7 @@ module UdonParser
         when ':delimited:esc'
             case
             when __i==92; __state=':delimited:esc:2'; next
-            when (__i>39&&__i<42); __i.into(a); __state=':delimited'; next
+            when (__i>39&&__i<42); __i.into(a); b.reset!; __state=':delimited'; next
             when !eof?; __i.into(b); b.into(a); __state=':delimited'; next
             end
         when ':delimited:esc:2'

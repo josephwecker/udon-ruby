@@ -99,7 +99,7 @@
 | :delimited:donecheck | .          |     | ')'>>a          | :delimited             |
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :delimited:esc  | [\\]            | >>  |                 | :delimited:esc:2       |
-| :delimited:esc  | [()]            | >>a |                 | :delimited             | # Escaped parenths
+| :delimited:esc  | [()]            | >>a | b>>             | :delimited             | # Escaped parenths
 | :delimited:esc  | .               | >>b | b>>a            | :delimited             |
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :delimited:esc:2 | [()]           |     | b>>a            | :delimited             | # Escaped backslash before parenths -> \ and actual (

@@ -4,39 +4,38 @@ $KCODE='U'
 class TestUdon < MiniTest::Unit::TestCase
   WHITESPACE   = "      \t\n\r"
 
+  #----------------------------------------------------------------------------
   def test_blank_documents
-    ##############
-    assert_equal         [],                    ''.udon
-    ##############
+    assert_equal [], ''.udon
+    assert_equal "\n\t  \r\t", "\n\t  \r\t".udon.join('')
     (0..3).each do
       s = randstr(200,WHITESPACE)
-      ##############
-      assert_equal       s,                     s.udon.join('')
-      ##############
+      assert_equal s, s.udon.join('')
     end
   end
 
+  #----------------------------------------------------------------------------
   def test_passthru_documents
-    (0..3).each do
-      s = udon_safe(randstr(100))
-      ##############
-      assert_equal       s,                     s.udon.join('')
-      ##############
+    assert_equal "random doc\n doing stuff", "random doc\n doing stuff".udon.join('')
+    (0..5).each do
+      s = udon_safe(randstr(200))
+      assert_equal s, s.udon.join('')
     end
   end
 
+  #----------------------------------------------------------------------------
   def test_only_block_comment
-    ##############
-    assert_equal         '#hi'.udon[0].name,    'comment'
-    assert_equal         '#hi'.udon[0].c[0],    'hi'
-    assert_equal         '#  hi'.udon[0].c[0],  'hi'
-    ##############
+    assert_equal '#hi'.udon[0].name,   'comment'
+    assert_equal '#hi'.udon[0].c[0],   'hi'
+    assert_equal '#  hi'.udon[0].c[0], 'hi'
   end
 
+  #----------------------------------------------------------------------------
   def test_block_comment_indent_level_with_leading
-    leading = randstr(200,WHITESPACE) + "\n"
+    leading = randstr(200,WHITESPACE)
     following = randstr(200,WHITESPACE)
     comment = <<-COMMENT
+      \t
       #  line 0
          line 1
         line 2
@@ -46,20 +45,20 @@ class TestUdon < MiniTest::Unit::TestCase
       # comment 2
      COMMENT
     r = (leading + comment + following).udon
-    lines = r[-2].c
-    ##############
-    assert_instance_of   UdonParser::UNode,     r[-2]
-    assert_equal         'comment',             r[-2].name
-    assert_equal         'line 0',              lines[0]
-    assert_equal         'line 1',              lines[1]
-    assert_equal         'line 2',              lines[2]
-    assert_equal         "\n",                  lines[3]
-    assert_equal         'line 4',              lines[4]
-    assert_instance_of   UdonParser::UNode,     r[-1]
-    assert_equal         'comment',             r[-1].name
-    ##############
+    lines = r[-2].c # second to last child should be the comment
+    assert_instance_of UdonParser::UNode, r[-2]
+    assert_equal       'comment',         r[-2].name
+    assert_equal       'line 0',          lines[0]
+    assert_equal       'line 1',          lines[1]
+    assert_equal       'line 2',          lines[2]
+    assert_equal       "\n",              lines[3]
+    assert_equal       'line 4',          lines[4]
+    # Last comment sucks up all "following" whitespace as well
+    assert_instance_of UdonParser::UNode, r[-1]
+    assert_equal       'comment',         r[-1].name
   end
 
+  #----------------------------------------------------------------------------
   def test_block_comment_in_passthru
     leading = udon_safe(randstr(200))
     following = udon_safe(randstr(200))
@@ -68,61 +67,48 @@ class TestUdon < MiniTest::Unit::TestCase
       and back to normal
     COMMENT
     r = (leading + comment + following).udon
-    # Find the comment
+    # Find the comment since the random before/after means the position is random
     found_i = nil
     r.each_with_index{|c,i| if c.is_a?(UdonParser::UNode) then found_i=i; break end}
-    ##############
-    refute_nil           found_i
-    assert               found_i < r.size
-    assert               found_i > 0
-    assert_equal         'comment',             r[found_i].name
-    assert_equal         leading,               r[0..(found_i-1)].join('')
-    assert_equal         following,             r[(found_i+2)..-1].join('')
-    ##############
+
+    refute_nil   found_i
+    assert       found_i < r.size
+    assert       found_i > 0
+    assert_equal 'comment', r[found_i].name
+    assert_equal leading,   r[0..(found_i-1)].join('')
+    assert_equal following, r[(found_i+2)..-1].join('')
   end
 
+  #----------------------------------------------------------------------------
   def test_simple_node
     r = "asdf\n|the-node\nasdf".udon
-    ##############
-    assert_instance_of   UdonParser::UNode,     r[1]
-    assert_equal         'the-node',            r[1].name
-    assert_equal         "asdf\n",              r[0]
-    assert_equal         "asdf",                r[2]
-    ##############
+    assert_instance_of UdonParser::UNode, r[1]
+    assert_equal       'the-node',        r[1].name
+    assert_equal       "asdf\n",          r[0]
+    assert_equal       "asdf",            r[2]
   end
 
+  #----------------------------------------------------------------------------
   def test_node_name_undelimited_cstring
+    assert_equal 'hello-there! friend', '|hello-there!\ friend a'.udon[0].name
+    # TODO: show various delimitings
     (0..20).each do
-      name = randstr(50).unpack("U*")
-      name = name - [0x0b, 0x0c, 0x85, 0x2028, 0x2029, 0x0a, 0x0d] # No newlines
-      name = name - [0x20, 0x09]                                   # No spaces
-      name = name - '[|.'.unpack("U*")                             # No [ or |
-      name << '-'[0] if name.last == '\\'[0]                       # Make sure it doesn't end with a \
-      name.unshift('-'[0]) if name.first == '{'[0]                 # Make sure it doesn't start with a {
-      name.unshift('-'[0]) if name.first == '('[0]                 # Make sure it doesn't start with a (
-      name = name.pack("U*")
-      name = 'node' if name.length == 0                            # Make sure it is not blank
+      name = rand_undelimited_cstring(50)
       assert_equal name, "|#{name} a".udon[0].name
     end
   end
 
+  #----------------------------------------------------------------------------
   def test_node_name_delimited_cstring
+    assert_equal ' (hello) ', '|( (hello) ) a'.udon[0].name
+    # TODO: show various delimitings
     (0..20).each do
-      name = randstr(50).gsub(/\(|\)/u,'').scan(/./u)
-      # Inject some balanced parenthases
-      (0..rand(10)).each do
-        pos1 = rand(name.size)
-        pos2 = rand(name.size - pos1) + pos1 + 1
-        unless name[pos1-1]=="\\" || name[pos2-1]=="\\"
-          name = name.insert(pos2,')').insert(pos1,'(')
-        end
-      end
-      name << ' ' if name.last=='\\'
-      name = name.join('')
-      assert_equal name, "|(#{name}) a".udon[0].name
+      name = rand_delimited_cstring(50)
+      assert_equal unescaped_cstr(name), "|#{name} a".udon[0].name
     end
   end
 
+  #----------------------------------------------------------------------------
   def test_node_id_after_name
     assert_equal 'my id!', "|this-node[my id!]".udon[0].a['id']
   end
