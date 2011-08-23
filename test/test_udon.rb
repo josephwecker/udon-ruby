@@ -110,8 +110,19 @@ class TestUdon < MiniTest::Unit::TestCase
   end
 
   #----------------------------------------------------------------------------
-  def test_node_id_after_name
-    assert_equal 'my id!', "|this-node[my id!]".udon[0].a['id']
+  def test_node_id_after_name_inline
+    assert_equal 'my id!',   "|this-node[my id!] a".udon[0].a['id']
+    assert_equal 'my [id!]', "|this-node[my \[id!\]] a".udon[0].a['id']
+    assert_equal 'my id!\\', "|this-node[my id!\\\\] a".udon[0].a['id']
+    assert_equal 'my [id!]', "|this-node[my [id!]] a".udon[0].a['id']
+    (0..200).each do
+      name = rand_cstring
+      id = rand_delimited_cstring(50,'[',']')
+      out_id = unescaped_cstr(id,'[',']')
+      space = randstr(3," \t")
+      u = "|#{name}#{space}#{id} a"
+      assert_equal out_id, u.udon[0].a['id']
+    end
   end
 
 =begin
