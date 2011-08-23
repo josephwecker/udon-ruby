@@ -1,4 +1,5 @@
 require 'helper'
+require 'pp'
 $KCODE='U'
 
 class TestUdon < MiniTest::Unit::TestCase
@@ -91,7 +92,6 @@ class TestUdon < MiniTest::Unit::TestCase
   #----------------------------------------------------------------------------
   def test_node_name_undelimited_cstring
     assert_equal 'hello-there! friend', '|hello-there!\ friend a'.udon[0].name
-    # TODO: show various delimitings
     (0..20).each do
       name = rand_undelimited_cstring(50)
       assert_equal name, "|#{name} a".udon[0].name
@@ -100,8 +100,9 @@ class TestUdon < MiniTest::Unit::TestCase
 
   #----------------------------------------------------------------------------
   def test_node_name_delimited_cstring
-    assert_equal ' (hello) ', '|( (hello) ) a'.udon[0].name
-    # TODO: show various delimitings
+    assert_equal ' (hello) ',    '|( (hello) ) a'.udon[0].name
+    assert_equal ' (hello ',     '|( \\(hello ) a'.udon[0].name
+    assert_equal '\\ \\(hello)', '|(\\ \\\\(hello)) a'.udon[0].name
     (0..20).each do
       name = rand_delimited_cstring(50)
       assert_equal unescaped_cstr(name), "|#{name} a".udon[0].name
