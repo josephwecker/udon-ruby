@@ -138,16 +138,18 @@ class MiniTest::Unit::TestCase
   end
 
   def unescaped_cstr(str,left='(',right=')')
-    str = str.dup[1..-2] # Take off beginning and end delimiters
-    for d in [left, right] do
-      str = str.scan(/./u)
-      str = str.reduce([]) do |acc,chr|
-        if chr == d && (acc[-1]=='\\')
-          acc.pop
-          acc + [chr]
-        else acc + [chr] end
+    if str[0..0] == left && str[-1..-1] == right
+      str = str.dup[1..-2]
+      for d in [left, right] do
+        str = str.scan(/./u)
+        str = str.reduce([]) do |acc,chr|
+          if chr == d && (acc[-1]=='\\')
+            acc.pop
+            acc + [chr]
+          else acc + [chr] end
+        end
+        str = str.join('')
       end
-      str = str.join('')
     end
     return str
   end
