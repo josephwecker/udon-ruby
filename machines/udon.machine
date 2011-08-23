@@ -45,13 +45,13 @@
 | :ident          | {eof?}          |     | error('er1')    | <retstate>             |
 | :ident          | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident          | [\n]            | >>  |                 | :ident:nl              |
-| :ident          | [./{]           |     |                 | :ident:nxt             |
+| :ident          | [.{\[]          |     |                 | :ident:nxt             |
 | :ident          | .               |     |                 | cstr(:ident:nameret)   |
 | :ident:nameret  |                 |     | s.name>>        | :ident:nxt             |
 :                 :                 :     : s.c.pop>>s.name :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :ident:nxt      | {eof?}          |     | s>>p            | <retstate>             |
-| :ident:nxt      | [./{]           | >>  | error('nyi')    | <retstate>             |
+| :ident:nxt      | [.\[]           | >>  | error('nyi')    | <retstate>             |
 | :ident:nxt      | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nxt      | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident:nxt      | .               |     |                 | cstr(:ident:a_or_c)    |
@@ -81,41 +81,33 @@
 
  Basic Control Strings
 +-----------------+-----------------+-----+-----------------+------------------------+
-| cstr(retstate)  |                 |     |                 | :first                 |
+| cstr(retstate)  |                 |     | nst=0           | :first                 |
 | :first          | {eof?}          |     | a>>>p           | <retstate>             |
-| :first          | ["]             | >>  |                 | :dq-dat                |
-| :first          | [']             | >>  |                 | :sq-dat                |
-| :first          | [`]             | >>  |                 | :bt-dat                |
+| :first          | [(]             | >>  | nst=1           | :delimited             |
 | :first          | [ \t\n]         |     | a>>>p           | <retstate>             |
-| :first          | .               | >>a |                 | :dat                   |
+| :first          | .               | >>a |                 | :normal                |
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :dat            | {eof?}          |     | a>>>p           | <retstate>             |
-| :dat            | [ \t\n]         |     | a>>>p           | <retstate>             |
-| :dat            | .               | >>a |                 | :dat                   |
+| :delimited      | [\\]            | >>b |                 | :delimited:esc         |
+| :delimited      | [(]             | >>a | nst+=1          | :delimited             |
+| :delimited      | [)]             | >>  | nst-=1          | :delimited:donecheck   |
+| :delimited      | .               | >>a |                 | :delimited             |
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :dq-dat         | [\\]            | >>  |                 | :dq-dat:esc            |
-| :dq-dat         | ["]             | >>  | a>>>p           | <retstate>             |
-| :dq-dat         | .               | >>a |                 | :dq-dat                |
+| :delimited:donecheck | {nst==0}   |     | a>>>p           | <retstate>             |
+| :delimited:donecheck | .          |     | ')'>>a          | :delimited             |
 +-----------------+-----------------+-----+-----------------+------------------------+
-# TODO: move these to a separate metachar function?
-| :dq-dat:esc     | [t]             | >>  | "\t">>a         | :dq-dat                |
-| :dq-dat:esc     | [n]             | >>  | "\n">>a         | :dq-dat                |
-| :dq-dat:esc     | [r]             | >>  | "\r">>a         | :dq-dat                |
-| :dq-dat:esc     | [f]             | >>  | "\f">>a         | :dq-dat                |
-| :dq-dat:esc     | [b]             | >>  | "\b">>a         | :dq-dat                |
-| :dq-dat:esc     | [a]             | >>  | "\a">>a         | :dq-dat                |
-| :dq-dat:esc     | [e]             | >>  | "\e">>a         | :dq-dat                |
-| :dq-dat:esc     | [s]             | >>  | "\s">>a         | :dq-dat                |
-| :dq-dat:esc     | .               | >>a |                 | :dq-dat                |
+| :delimited:esc  | [\\]            | >>  |                 | :delimited:esc:2       |
+| :delimited:esc  | [()]            | >>a |                 | :delimited             | # Escaped parenths
+| :delimited:esc  | .               | >>b | b>>a            | :delimited             |
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :sq-dat         | [\\]            | >>  |                 | :sq-dat:esc            |
-| :sq-dat         | [']             | >>  | a>>>p           | <retstate>             |
-| :sq-dat         | .               | >>a |                 | :sq-dat                |
+| :delimited:esc:2 | [()]           |     | b>>a            | :delimited             | # Escaped backslash before parenths -> \ and actual (
+| :delimited:esc:2 | .              | >>b | '\\'>>a; b>>a   | :delimited             | # Just two backslashes, moving on
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :sq-dat:esc     | [\\]            | >>a |                 | :sq-dat                |
-| :sq-dat:esc     | [']             | >>a |                 | :sq-dat                |
-| :sq-dat:esc     | .               | >>b | '\\'>>a; b>>a   | :sq-dat                |
+| :normal         | {eof?}          |     | a>>>p           | <retstate>             |
+| :normal         | [\\]            | >>b |                 | :normal:esc            |
+| :normal         | [\[\s\n\t.]     |     | a>>>p           | <retstate>             |
+| :normal         | .               | >>a |                 | :normal                |
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :bt-dat         | [`]             | >>  | a>>>p           | <retstate>             |
-| :bt-dat         | .               | >>a |                 | :bt-dat                |
+| :normal:esc     | {eof?}          |     | b>>a; a>>>p     | <retstate>             |
+| :normal:esc     | [\[\s\t.]       | >>a |                 | :normal                |
+| :normal:esc     | .               | >>b | b>>a            | :normal                |
 +-----------------+-----------------+-----+-----------------+------------------------+

@@ -257,7 +257,7 @@ module UdonParser
             when (eof?); @fwd=true; error('er1'); return(retstate)
             when __i==9,space?; __state=':ident:nxt'; next
             when nl?; __state=':ident:nl'; next
-            when (__i>45&&__i<48),__i==123; @fwd=true; __state=':ident:nxt'; next
+            when __i==46,__i==91,__i==123; @fwd=true; __state=':ident:nxt'; next
             when !eof?; @fwd=true; __state=cstr(':ident:nameret',s); next
             end
         when ':ident:attr:val'
@@ -267,7 +267,7 @@ module UdonParser
         when ':ident:nxt'
             case
             when (eof?); @fwd=true; s.into(p); return(retstate)
-            when (__i>45&&__i<48),__i==123; error('nyi'); return(retstate)
+            when __i==46,__i==91; error('nyi'); return(retstate)
             when nl?; __state=':ident:nl'; next
             when __i==9,space?; next
             when !eof?; @fwd=true; __state=cstr(':ident:a_or_c',s); next
@@ -290,6 +290,7 @@ module UdonParser
     end
 
     def cstr(retstate,p=nil,name='cstr')
+      nst=0
       __state=':first'
       s = UArray.new
       a ||= ''
@@ -297,55 +298,48 @@ module UdonParser
       loop do
         __i = nextchar
         case __state
-        when ':bt-dat'
+        when ':delimited:donecheck'
             case
-            when __i==96; a.into!(p); return(retstate)
+            when (nst==0); @fwd=true; a.into!(p); return(retstate)
+            when !eof?; @fwd=true; ')'.into(a); __state=':delimited'; next
+            end
+        when ':delimited'
+            case
+            when __i==92; __i.into(b); __state=':delimited:esc'; next
+            when __i==40; __i.into(a); nst+=1; next
+            when __i==41; nst-=1; __state=':delimited:donecheck'; next
             when !eof?; __i.into(a); next
             end
         when ':first'
             case
             when (eof?); @fwd=true; a.into!(p); return(retstate)
-            when __i==34; __state=':dq-dat'; next
-            when __i==39; __state=':sq-dat'; next
-            when __i==96; __state=':bt-dat'; next
+            when __i==40; nst=1; __state=':delimited'; next
             when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(retstate)
-            when !eof?; __i.into(a); __state=':dat'; next
+            when !eof?; __i.into(a); __state=':normal'; next
             end
-        when ':dq-dat:esc'
-            case
-            when __i==116; "\t".into(a); __state=':dq-dat'; next
-            when __i==110; "\n".into(a); __state=':dq-dat'; next
-            when __i==114; "\r".into(a); __state=':dq-dat'; next
-            when __i==102; "\f".into(a); __state=':dq-dat'; next
-            when __i==98; "\b".into(a); __state=':dq-dat'; next
-            when __i==97; "\a".into(a); __state=':dq-dat'; next
-            when __i==101; "\e".into(a); __state=':dq-dat'; next
-            when __i==115; "\s".into(a); __state=':dq-dat'; next
-            when !eof?; __i.into(a); __state=':dq-dat'; next
-            end
-        when ':sq-dat'
-            case
-            when __i==92; __state=':sq-dat:esc'; next
-            when __i==39; a.into!(p); return(retstate)
-            when !eof?; __i.into(a); next
-            end
-        when ':dq-dat'
-            case
-            when __i==92; __state=':dq-dat:esc'; next
-            when __i==34; a.into!(p); return(retstate)
-            when !eof?; __i.into(a); next
-            end
-        when ':sq-dat:esc'
-            case
-            when __i==92; __i.into(a); __state=':sq-dat'; next
-            when __i==39; __i.into(a); __state=':sq-dat'; next
-            when !eof?; __i.into(b); '\\'.into(a); b.into(a); __state=':sq-dat'; next
-            end
-        when ':dat'
+        when ':normal'
             case
             when (eof?); @fwd=true; a.into!(p); return(retstate)
-            when nl?,(__i>8&&__i<11),space?; @fwd=true; a.into!(p); return(retstate)
+            when __i==92; __i.into(b); __state=':normal:esc'; next
+            when nl?,(__i>8&&__i<11),space?,__i==46,__i==91; @fwd=true; a.into!(p); return(retstate)
             when !eof?; __i.into(a); next
+            end
+        when ':normal:esc'
+            case
+            when (eof?); @fwd=true; b.into(a); a.into!(p); return(retstate)
+            when __i==9,space?,__i==46,__i==91; __i.into(a); __state=':normal'; next
+            when !eof?; __i.into(b); b.into(a); __state=':normal'; next
+            end
+        when ':delimited:esc'
+            case
+            when __i==92; __state=':delimited:esc:2'; next
+            when (__i>39&&__i<42); __i.into(a); __state=':delimited'; next
+            when !eof?; __i.into(b); b.into(a); __state=':delimited'; next
+            end
+        when ':delimited:esc:2'
+            case
+            when (__i>39&&__i<42); @fwd=true; b.into(a); __state=':delimited'; next
+            when !eof?; __i.into(b); '\\'.into(a); b.into(a); __state=':delimited'; next
             end
         end
         error("Unexpected \"#{[__i].pack("U*")}\"")
