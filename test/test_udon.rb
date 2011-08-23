@@ -92,56 +92,36 @@ class TestUdon < MiniTest::Unit::TestCase
   end
 
   def test_node_name_undelimited_cstring
-    (0..10).each do
-      name = randstr(50).gsub(/ \[ | \( | \)
-                              | \|
-                              | \s | \n | \t | \r
-                              | \.
-                              /x,'')
-      assert_equal        name,                  "|#{name} a".udon_pp[0].name
+    (0..20).each do
+      name = randstr(50).unpack("U*")
+      name = name - [0x0b, 0x0c, 0x85, 0x2028, 0x2029, 0x0a, 0x0d] # No newlines
+      name = name - [0x20, 0x09]                                   # No spaces
+      name = name - '[|.'.unpack("U*")                             # No [ or |
+      name << '-'[0] if name.last == '\\'[0]                       # Make sure it doesn't end with a \
+      name.unshift('-'[0]) if name.first == '{'[0]                 # Make sure it doesn't start with a {
+      name.unshift('-'[0]) if name.first == '('[0]                 # Make sure it doesn't start with a (
+      name = name.pack("U*")
+      name = 'node' if name.length == 0                            # Make sure it is not blank
+      assert_equal name, "|#{name} a".udon[0].name
     end
   end
 
   def test_node_name_delimited_cstring
-    (0..10).each do
-      name = randstr(50).gsub(/\(|\)/,'')
+    (0..20).each do
+      name = randstr(50).gsub(/\(|\)/u,'').scan(/./u)
       # Inject some balanced parenthases
       (0..rand(10)).each do
-        pos1 = rand(name.length)
-        pos2 = rand(name.length - pos1) + pos1
-        name = name.insert(pos2,')').insert(pos1,'(')
+        pos1 = rand(name.size)
+        pos2 = rand(name.size - pos1) + pos1 + 1
+        unless name[pos1-1]=="\\" || name[pos2-1]=="\\"
+          name = name.insert(pos2,')').insert(pos1,'(')
+        end
       end
-      puts name
-      assert_equal        name,                  "|#{name} a".udon_pp[0].name
+      name << ' ' if name.last=='\\'
+      name = name.join('')
+      assert_equal name, "|(#{name}) a".udon[0].name
     end
   end
-
-
-  # TODO: Depricated. These will be types of data now except the first one
-  #def test_node_name
-  #  ##############
-  #  assert_equal         'hello-there!',        '|hello-there!'.udon[0].name
-  #  assert_equal         "hello there!\t",      '|"hello there!\t"'.udon[0].name
-  #  assert_equal         'hello there!\t',      "|'hello there!\\t'".udon[0].name
-  #  assert_equal         'hello there!\t',      '|`hello there!\t`'.udon[0].name
-  #  ##############
-  #end
-  #def test_node_name_with_inline_children
-  #  ##############
-  #  assert_equal         'hello-there!',        '|hello-there! c'.udon[0].name
-  #  assert_equal         "hello there!\t",      '|"hello there!\t" c'.udon[0].name
-  #  assert_equal         'hello there!\t',      "|'hello there!\\t' c".udon[0].name
-  #  assert_equal         'hello there!\t',      '|`hello there!\t` c'.udon[0].name
-  #  ##############
-  #end
-  #def test_node_name_with_nextline_children
-  #  ##############
-  #  assert_equal         'hello-there!',        "|hello-there!\nc".udon[0].name
-  #  assert_equal         "hello there!\t",      "|\"hello there!\\t\"\nc".udon[0].name
-  #  assert_equal         'hello there!\t',      "|'hello there!\\t'\nc".udon[0].name
-  #  assert_equal         'hello there!\t',      "|`hello there!\\t`\nc".udon[0].name
-  #  ##############
-  #end
 
 =begin
 
