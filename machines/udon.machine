@@ -51,10 +51,13 @@
 :                 :                 :     : s.c.pop>>s.name :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :ident:nxt      | {eof?}          |     | s>>p            | <retstate>             |
-| :ident:nxt      | [.\[]           | >>  | error('nyi')    | <retstate>             |
+| :ident:nxt      | [\[]            | >>  |                 | idstr(:ident:idret)    |
+| :ident:nxt      | [.]             | >>  | error('nyi')    | <retstate>             |
 | :ident:nxt      | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nxt      | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident:nxt      | .               |     |                 | cstr(:ident:a_or_c)    |
+| :ident:idret    |                 |     | id=['id',s.c.pop] | :ident:nxt           |
+:                 :                 :     : id>>s.a         :                        : # two lines here because of genmachine defect
 +-----------------+-----------------+-----+-----------------+------------------------+
 | :ident:nl       | {eof?}          |     | error('er3')    | <retstate>             |
 | :ident:nl       | [ \t]           | >>  |                 | :ident:nl              |
@@ -110,4 +113,23 @@
 | :normal:esc     | {eof?}          |     | b>>a; a>>>p     | <retstate>             |
 | :normal:esc     | [\[\s\t.]       | >>a |                 | :normal                |
 | :normal:esc     | .               | >>b | b>>a            | :normal                |
++-----------------+-----------------+-----+-----------------+------------------------+
+
+ ID Strings - like cstr but with square brackets
++-----------------+-----------------+-----+-----------------+------------------------+
+| idstr(retstate) |                 |     | nst=1           | :delimited             |
+| :delimited      | [\\]            | >>b |                 | :delimited:esc         |
+| :delimited      | [\[]            | >>a | nst+=1          | :delimited             |
+| :delimited      | [\]]            | >>  | nst-=1          | :delimited:donecheck   |
+| :delimited      | .               | >>a |                 | :delimited             |
++-----------------+-----------------+-----+-----------------+------------------------+
+| :delimited:donecheck | {nst==0}   |     | a>>>p           | <retstate>             |
+| :delimited:donecheck | .          |     | ']'>>a          | :delimited             |
++-----------------+-----------------+-----+-----------------+------------------------+
+| :delimited:esc  | [\\]            | >>  |                 | :delimited:esc:2       |
+| :delimited:esc  | [\[\]]          | >>a |                 | :delimited             | # Escaped parenths
+| :delimited:esc  | .               | >>b | b>>a            | :delimited             |
++-----------------+-----------------+-----+-----------------+------------------------+
+| :delimited:esc:2 | [\[\]]         |     | b>>a            | :delimited             | # Escaped backslash before parenths -> \ and actual [
+| :delimited:esc:2 | .              | >>b | '\\'>>a; b>>a   | :delimited             | # Just two backslashes, moving on
 +-----------------+-----------------+-----+-----------------+------------------------+

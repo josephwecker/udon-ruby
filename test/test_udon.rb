@@ -123,6 +123,10 @@ class TestUdon < MiniTest::Unit::TestCase
     end
   end
 
+  def test_node_id_after_name
+    assert_equal 'my id!', "|this-node[my id!]".udon[0].a['id']
+  end
+
 =begin
 
 --------------------------- TODO
@@ -154,8 +158,8 @@ class TestUdon < MiniTest::Unit::TestCase
    [ ] - Full embeds
 
 ---- DATA NODES
- [ ] - Triggered with '|'
- [ ] - (Inline) Name (control-string)
+ [d] - Triggered with '|'
+ [d] - (Inline) Name (control-string)
  [ ] - Inline ID (bracketed-string - like control-string but w/ required square delims)
  [ ] - Nextline ID
  [ ] - Inline Tags (control-strings starting with '.')

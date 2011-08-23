@@ -22,18 +22,18 @@ class String
   def reset; d=dup;d.reset!;d end
 end
 
+class Array
+  def into(v); into!(v) unless size == 0 end
+  def into!(v); v << self end
+  def reset!; self.clear end
+  def reset; d=dup;d.reset!;d end
+end
 
 module UdonParser
   def self.parse(str) Parser.new(str).parse end
   def self.parse_file(fname) Parser.new(IO.read(fname)).parse end
 
 
-  class UArray < Array
-    def into(v); into!(v) unless size == 0 end
-    def into!(v); v << self end
-    def reset!; self.clear end
-    def reset; d=dup;d.reset!;d end
-  end
 
   class UHash < Hash
     def into!(v) v << self end
@@ -158,7 +158,7 @@ module UdonParser
 
     def document(p=nil,name='document')
       __state=':data_or_child'
-      s = UArray.new
+      s = []
       a ||= ''
       b ||= ''
       loop do
@@ -252,6 +252,8 @@ module UdonParser
             when nl?; __i.into(a); a.into(s.c.last); __state=':ident:nl'; next
             when !eof?; __i.into(a); __state=':ident:child'; next
             end
+        when ':ident:idret'
+            @fwd=true; id=['id',s.c.pop]; id.into(s.a); __state=':ident:nxt'; next
         when ':ident'
             case
             when (eof?); @fwd=true; error('er1'); return(retstate)
@@ -267,7 +269,8 @@ module UdonParser
         when ':ident:nxt'
             case
             when (eof?); @fwd=true; s.into(p); return(retstate)
-            when __i==46,__i==91; error('nyi'); return(retstate)
+            when __i==91; __state=idstr(':ident:idret',s); next
+            when __i==46; error('nyi'); return(retstate)
             when nl?; __state=':ident:nl'; next
             when __i==9,space?; next
             when !eof?; @fwd=true; __state=cstr(':ident:a_or_c',s); next
@@ -292,7 +295,7 @@ module UdonParser
     def cstr(retstate,p=nil,name='cstr')
       nst=0
       __state=':first'
-      s = UArray.new
+      s = []
       a ||= ''
       b ||= ''
       loop do
@@ -339,6 +342,45 @@ module UdonParser
         when ':delimited:esc:2'
             case
             when (__i>39&&__i<42); @fwd=true; b.into(a); __state=':delimited'; next
+            when !eof?; __i.into(b); '\\'.into(a); b.into(a); __state=':delimited'; next
+            end
+        end
+        error("Unexpected \"#{[__i].pack("U*")}\"")
+        @fwd = true
+        return
+      end
+    end
+
+    def idstr(retstate,p=nil,name='idstr')
+      nst=1
+      __state=':delimited'
+      s = []
+      a ||= ''
+      b ||= ''
+      loop do
+        __i = nextchar
+        case __state
+        when ':delimited:donecheck'
+            case
+            when (nst==0); @fwd=true; a.into!(p); return(retstate)
+            when !eof?; @fwd=true; ']'.into(a); __state=':delimited'; next
+            end
+        when ':delimited'
+            case
+            when __i==92; __i.into(b); __state=':delimited:esc'; next
+            when __i==91; __i.into(a); nst+=1; next
+            when __i==93; nst-=1; __state=':delimited:donecheck'; next
+            when !eof?; __i.into(a); next
+            end
+        when ':delimited:esc'
+            case
+            when __i==92; __state=':delimited:esc:2'; next
+            when __i==91,__i==93; __i.into(a); __state=':delimited'; next
+            when !eof?; __i.into(b); b.into(a); __state=':delimited'; next
+            end
+        when ':delimited:esc:2'
+            case
+            when __i==91,__i==93; @fwd=true; b.into(a); __state=':delimited'; next
             when !eof?; __i.into(b); '\\'.into(a); b.into(a); __state=':delimited'; next
             end
         end
