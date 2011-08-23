@@ -127,9 +127,18 @@ class TestUdon < MiniTest::Unit::TestCase
 
   #----------------------------------------------------------------------------
   def test_tags_inline
-    skip
-
-
+    assert '|a-node .awesome'.udon[0].a['awesome']
+    assert '|a-node.awesome'.udon[0].a['awesome']
+    assert '|a-node[uid].awesome'.udon[0].a['awesome']
+    assert '|a-node.awesome[uid]'.udon[0].a['awesome']
+    assert '|a-node .awesome [uid]'.udon[0].a['awesome']
+    s = '|a-node [uid] .one .two.three a'
+    assert s.udon[0].a['one']
+    assert s.udon[0].a['two']
+    assert s.udon[0].a['three']
+    assert_nil s.udon[0].a['four']
+    assert_equal 'a', s.udon[0][0]
+    assert_equal 'uid', s.udon[0].a['id']
   end
 
 =begin
