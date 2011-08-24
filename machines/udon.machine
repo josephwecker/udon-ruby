@@ -42,7 +42,7 @@
 | node(retstate)::U |               |     | ipar=$indent    | :ident                 |
 :                 :                 :     :                 :                        :
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :ident          | {eof?}          |     | error('er1')    | <retstate>             |
+| :ident          | {eof?}          |     | s>>p            | <retstate>             |
 | :ident          | [ \t]           | >>  |                 | :ident:nxt             |
 | :ident          | [\n]            | >>  |                 | :ident:nl              |
 | :ident          | [.{\[]          |     |                 | :ident:nxt             |
@@ -53,35 +53,49 @@
 | :ident:nxt      | {eof?}          |     | s>>p            | <retstate>             |
 | :ident:nxt      | [\[]            | >>  |                 | idstr(:ident:idret)    |
 | :ident:nxt      | [.]             | >>  |                 | cstr(:ident:tagret)    |
+| :ident:nxt      | [:]             | >>  |                 | cstr(:attribute:key)   |
 | :ident:nxt      | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nxt      | [ \t]           | >>  |                 | :ident:nxt             |
-| :ident:nxt      | .               |     |                 | cstr(:ident:a_or_c)    |
-| :ident:idret    |                 |     | id=['id',s.c.pop] | :ident:nxt           |
-:                 :                 :     : id>>s.a         :                        : # two lines here because of genmachine defect
-| :ident:tagret   |                 |     | t=[s.c.pop,true] | :ident:nxt            |
-:                 :                 :     : t>>s.a          :                        :
+| :ident:nxt      | .               |     |                 | :children              | # TODO: distinguish between in/nextline
++-----------------+-----------------+-----+-----------------+------------------------+         and make it its own function probably
+| :ident:idret    |                 |     | id=['id',s.c.pop]; id>>s.a  | :ident:nxt | # two lines here because of genmachine defect
+| :ident:tagret   |                 |     | t=[s.c.pop,true]; t>>s.a    | :ident:nxt |
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :ident:nl       | {eof?}          |     | error('er3')    | <retstate>             |
+| :ident:nl       | {eof?}          |     | s>>p            | <retstate>             |
 | :ident:nl       | [ \t]           | >>  |                 | :ident:nl              |
 | :ident:nl       | [\n]            | >>  |                 | :ident:nl              |
 | :ident:nl       | {$indent<=ipar} |     | s>>p            | <retstate>             |
 | :ident:nl       | .               |     | ibase=$indent   | :ident:nxt             |
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :ident:a_or_c   | {eof?}          |     | a>>s.c.last     | <retstate>             |
-:                 :                 :     : s>>p            :                        :
-| :ident:a_or_c   | [:]             | >>  | a>>             | :ident:attr:val        |
-:                 :                 :     : s.c.pop>>aname  :                        :
-| :ident:a_or_c   | [ \t]           | >>a |                 | :ident:a_or_c          |
-| :ident:a_or_c   | [\n]            | >>a | a>>s.c.last     | :ident:nl              | # was child
-| :ident:a_or_c   | .               | >>a |                 | :ident:child           |
+| :attribute:key  |                 |     | key=s.c.pop     | :attribute:value:st    |
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :ident:child    | {eof?}          |     | a>>s            | <retstate>             |
-:                 :                 :     : s>>p            :                        :
-| :ident:child    | [\n]            | >>a | a>>s            | :ident:child:nl        |
-| :ident:child    | .               | >>a |                 | :ident:child           |
+| :attribute:value:st | [ \t]       | >>  |                 | :attribute:value:st    |
+| :attribute:value:st | [\n]        | >>  |                 | :attribute:value:nl    |
+| :attribute:value:st | .           |     |                 | :attribute:value       |
 +-----------------+-----------------+-----+-----------------+------------------------+
-| :ident:child:nl | .               |     | error('nyi')    | <retstate>             |
-| :ident:attr:val | .               |     | error('nyi')    | <retstate>             |
+| :children       | {eof?}          |     | s>>p            | <retstate>             |
+| :children       | [\n]            | >>  | a>>s; s>>p      | <retstate>             |
+| :children       | .               | >>a |                 | :children              |
+
+
+#| :attribute:value:nl |
+
++-----------------+-----------------+-----+-----------------+------------------------+
+#| :ident:a_or_c   | {eof?}          |     | a>>s.c.last     | <retstate>             |
+#:                 :                 :     : s>>p            :                        :
+#| :ident:a_or_c   | [:]             | >>  | a>>             | :ident:attr:val        |
+#:                 :                 :     : s.c.pop>>aname  :                        :
+#| :ident:a_or_c   | [ \t]           | >>a |                 | :ident:a_or_c          |
+#| :ident:a_or_c   | [\n]            | >>a | a>>s.c.last     | :ident:nl              | # was child
+#| :ident:a_or_c   | .               | >>a |                 | :ident:child           |
++-----------------+-----------------+-----+-----------------+------------------------+
+#| :ident:child    | {eof?}          |     | a>>s            | <retstate>             |
+#:                 :                 :     : s>>p            :                        :
+#| :ident:child    | [\n]            | >>a | a>>s            | :ident:child:nl        |
+#| :ident:child    | .               | >>a |                 | :ident:child           |
++-----------------+-----------------+-----+-----------------+------------------------+
+#| :ident:child:nl | .               |     | error('nyi')    | <retstate>             |
+#| :ident:attr:val | .               |     | error('nyi')    | <retstate>             |
 +-----------------+-----------------+-----+-----------------+------------------------+
 
  Basic Control Strings

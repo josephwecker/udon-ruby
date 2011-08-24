@@ -234,59 +234,52 @@ module UdonParser
       loop do
         __i = nextchar
         case __state
-        when ':ident:child:nl'
-            if !eof?
-              @fwd=true; error('nyi'); return(retstate)
-            end
-        when ':ident:child'
-            case
-            when (eof?); @fwd=true; a.into(s); s.into(p); return(retstate)
-            when nl?; __i.into(a); a.into(s); __state=':ident:child:nl'; next
-            when !eof?; __i.into(a); next
-            end
-        when ':ident:a_or_c'
-            case
-            when (eof?); @fwd=true; a.into(s.c.last); s.into(p); return(retstate)
-            when __i==58; a.reset!; s.c.pop.into(aname); __state=':ident:attr:val'; next
-            when __i==9,space?; __i.into(a); next
-            when nl?; __i.into(a); a.into(s.c.last); __state=':ident:nl'; next
-            when !eof?; __i.into(a); __state=':ident:child'; next
-            end
         when ':ident:tagret'
             @fwd=true; t=[s.c.pop,true]; t.into(s.a); __state=':ident:nxt'; next
         when ':ident:idret'
             @fwd=true; id=['id',s.c.pop]; id.into(s.a); __state=':ident:nxt'; next
         when ':ident'
             case
-            when (eof?); @fwd=true; error('er1'); return(retstate)
+            when (eof?); @fwd=true; s.into(p); return(retstate)
             when __i==9,space?; __state=':ident:nxt'; next
             when nl?; __state=':ident:nl'; next
             when __i==46,__i==91,__i==123; @fwd=true; __state=':ident:nxt'; next
             when !eof?; @fwd=true; __state=cstr(':ident:nameret',s); next
             end
-        when ':ident:attr:val'
-            if !eof?
-              @fwd=true; error('nyi'); return(retstate)
+        when ':children'
+            case
+            when (eof?); @fwd=true; s.into(p); return(retstate)
+            when nl?; a.into(s); s.into(p); return(retstate)
+            when !eof?; __i.into(a); next
+            end
+        when ':attribute:value:st'
+            case
+            when __i==9,space?; next
+            when nl?; __state=':attribute:value:nl'; next
+            when !eof?; @fwd=true; __state=':attribute:value'; next
             end
         when ':ident:nxt'
             case
             when (eof?); @fwd=true; s.into(p); return(retstate)
             when __i==91; __state=idstr(':ident:idret',s); next
             when __i==46; __state=cstr(':ident:tagret',s); next
+            when __i==58; __state=cstr(':attribute:key',s); next
             when nl?; __state=':ident:nl'; next
             when __i==9,space?; next
-            when !eof?; @fwd=true; __state=cstr(':ident:a_or_c',s); next
+            when !eof?; @fwd=true; __state=':children'; next
             end
         when ':ident:nameret'
             @fwd=true; s.name.reset!; s.c.pop.into(s.name); __state=':ident:nxt'; next
         when ':ident:nl'
             case
-            when (eof?); @fwd=true; error('er3'); return(retstate)
+            when (eof?); @fwd=true; s.into(p); return(retstate)
             when __i==9,space?; next
             when nl?; next
             when (@indent<=ipar); @fwd=true; s.into(p); return(retstate)
             when !eof?; @fwd=true; ibase=@indent; __state=':ident:nxt'; next
             end
+        when ':attribute:key'
+            @fwd=true; key=s.c.pop; __state=':attribute:value:st'; next
         end
         error("Unexpected \"#{[__i].pack("U*")}\"")
         @fwd = true

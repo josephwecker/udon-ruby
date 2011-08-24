@@ -154,7 +154,180 @@ class TestUdon < MiniTest::Unit::TestCase
     end
   end
 
+  #----------------------------------------------------------------------------
+  def test_id_nextline
+    assert_equal "there", "|hello\n [there]".udon[0].a['id']
+    u = "|hello\n[there]".udon
+    assert_equal "[there]", u[1]
+    assert_nil   u[0].a['id']
+  end
+
+  #----------------------------------------------------------------------------
+  def test_tags_nextline
+    assert "|hello\n .there".udon[0].a['there']
+    u = "|hello\n.there".udon
+    assert_equal ".there", u[1]
+    assert_nil   u[0].a['there']
+  end
+
+  #----------------------------------------------------------------------------
+  def test_ident_part_combos
+    skip
+    # (including multiple nodes in one document - but same level at this point)
+  end
+
+  #----------------------------------------------------------------------------
+  def test_node_recursion
+    u= "|a |b |c".udon
+    assert            u[0]
+    assert            u[0][0]
+    assert            u[0][0][0]
+    assert_equal 'a', u[0].name
+    assert_equal 'b', u[0][0].name
+    assert_equal 'c', u[0][0][0].name
+
+    u= "|a |b |c\n"+
+       "|d".udon
+    assert            u[0]
+    assert            u[0][0]
+    assert            u[0][0][0]
+    assert_equal 'a', u[0].name
+    assert_equal 'b', u[0][0].name
+    assert_equal 'c', u[0][0][0].name
+    assert_equal 'd', u[1].name
+
+    u= "|a |b |c\n"+
+       " |d".udon
+    assert            u[0]
+    assert            u[0][0]
+    assert            u[0][0][0]
+    assert_equal 'a', u[0].name
+    assert_equal 'b', u[0][0].name
+    assert_equal 'c', u[0][0][0].name
+    assert_equal 'd', u[0][1].name
+
+    u= "|a |b |c\n"+
+       "    |d".udon
+    assert            u[0]
+    assert            u[0][0]
+    assert            u[0][0][0]
+    assert_equal 'a', u[0].name
+    assert_equal 'b', u[0][0].name
+    assert_equal 'c', u[0][0][0].name
+    assert_equal 'd', u[0][0][1].name
+
+    u= "|a |b |c\n"+
+       "      |d".udon
+    assert            u[0]
+    assert            u[0][0]
+    assert            u[0][0][0]
+    assert_equal 'a', u[0].name
+    assert_equal 'b', u[0][0].name
+    assert_equal 'c', u[0][0][0].name
+    assert_equal 'd', u[0][0][1].name
+
+    u= "|a |b |c\n"+
+       "       |d".udon
+    assert_equal 'a', u[0].name
+    assert_equal 'b', u[0][0].name
+    assert_equal 'c', u[0][0][0].name
+    assert_equal 'd', u[0][0][0][1].name
+  end
+
+  #----------------------------------------------------------------------------
+  def test_node_and_text_recursion
+    skip
+  end
+
+  #----------------------------------------------------------------------------
+  def test_node_attribute_and_test_recursion
+    skip
+  end
+
+
 =begin
+
+|iiiiiiiiiiiiiiiiiiiiiiiiii    ######         child ident-inline
+  iiiiiiiiiiii                 #####             ident-inline
+  iiiiiiiiiiiiii               ######            ident-inline
+  :kkkkkkkkkkkkk vvvvvvvvvvvvv ######            attribute-selfline  vchild-inline
+    vvvvvvvvvvvvvvvvvvvvvvvvvv                      vchild-selfline
+  ccccccccccccccccc                           child-selfline
+  cccccccccccccccc                            child-selfline
+
+|iiiiiii :kkkkkk vvvvvvvvvvvvv
+  :kkkkkkkk vvvvvvvvv
+
+|iiiiiii |jjjjjj ddddddddddd
+  cccccccccccccc
+
+^iiiiiii ^jjjjjjj
+        ^-equiv of starting a new line indented (attr/node/text) that is not
+          allowed indented subchildren
+Special case is if type=attribute, we're inline to another, and we already have
+a child value when a new attr/node is started - it belongs to parent instead of
+self. but not first value.
+   |abc :def :ghi jkl |mno
+                      ^ return to :def's context, which returns it to |abc's context
+
+   |abc :def
+     ghi      - def is a blank attribute - useless but possibly allowed (with warning?)
+   |abc :def
+          ghi  - now def has this child
+
+child-kind: node|attribute|data
+
+data:      has no children- each line or partial line is an individual child
+attribute: when inline & new node or attribute, they belong to parent. Each
+           distinct value a child (words). When >> to parent it attaches using
+           name to @a instead of anonymously to @c
+node:
+
+node+attribute: when inline they set a base for themselves as if they were on their own line
+
+
+
+
+|iiiiiiiiiiii :kkkkkkk vvvvvvvvv| cccccccc
+ ccccccccc
+
+child ( ident ) ( attribute ( key-inline   ) \/ ( vchild-inline )
+                            ( key-selfline ) /\ ( vchild-selfline )
+
+
+    "|somenode :a b :c d :e f"
+
+    "|hello :attr1 value 1"
+
+    "|hello :attr1\n value 1" # no way for node to have children in this case
+
+    "|thenode :attr1 val 1\n" +
+    "         :attr2 val 2\n" +
+    "  child"
+
+    "|thenode\n" +
+    "  :a1 value one\n" +
+    "  :a2 value two\n" +
+    "  child"
+
+    "|node :attr value\n" +
+    "  does not continue"
+
+    "|node\n" +
+    "  :attr value\n"+
+    "    does continue"
+
+    "|one\n" +
+    " :a b\n" +
+    "   :c d\n" +
+    "  :e f\n" +
+    "      g h i"
+
+    "|something:withnamespace :href http://example.com:8080 :y true"
+
+    "|anode :something blah| child"
+
+    "|anode :a b|' hello"
 
 --------------------------- TODO
 ---- MISC
@@ -185,12 +358,13 @@ class TestUdon < MiniTest::Unit::TestCase
    [ ] - Full embeds
 
 ---- DATA NODES
+ --- IDENT part
  [d] - Triggered with '|'
  [d] - (Inline) Name (control-string)
- [ ] - Inline ID (bracketed-string - like control-string but w/ required square delims)
- [ ] - Nextline ID
- [ ] - Inline Tags (control-strings starting with '.')
- [ ] - Nextline Tags
+ [d] - Inline ID (bracketed-string - like control-string but w/ required square delims)
+ [d] - Nextline ID
+ [d] - Inline Tags (control-strings starting with '.')
+ [d] - Nextline Tags
  [ ] - Inline attributes no whitespace values
  [ ] - Inline attributes w/ values w/ whitespaces
  [ ] - Inline EOL comments
