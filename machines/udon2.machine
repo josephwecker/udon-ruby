@@ -1,0 +1,57 @@
+#-------------------------------------------------------------------------------
+|stateset[udon].array                                          | @top-level
+  |state[top-level]  |     |                                   |
+    : .              |     | @child(self)                      | @.
+    : eof?           |     |                                   | <return>
+
+#-------------------------------------------------------------------------------
+|stateset[child(parent)]                                       | @next-child
+  |state[next-child] |     |                                   |
+    : [\n]           | >>a | a>>parent                         | @.
+    : [ \t]          | >>a |                                   | @.
+    : [\|]           | >>  | a>> | @nodu(parent)               | @.
+    : [#]            | >>  | a>> | @block-comment(parent)      | @.
+    : .              |     | a>> | @data(parent)               | @.
+    : eof?           |     | a>>parent                         | <return>
+
+#-------------------------------------------------------------------------------
+|stateset[block-comment(parent)].nodu                          |
+                           | ib = $indent + 1                  |
+                           | ip = $indent                      | @first-line-ws
+  |state[first-line-ws]    |                                   |
+    : [ \t]          | >>  | ibase = ibase + 1                 | @.
+    : .              |     |                                   | @body
+  |state[body]       |     |                                   |
+    : [\n]           | >>  | a>>self                           |
+                     |     | @nl(ip @done ib @. parent) >> [ib nxt]
+                     |     |                                   | <nxt>
+    : .              | >>a |                                   | @.
+  |state[{eof?}]     |     |                                   | <done>
+  |state[done]       |     | self>>parent                      | <return>
+
+
+
+#-------------------------------------------------------------------------------
+|stateset[nl(ip s1 ib s2 nl_p sp=F)]                           | @indenting
+  |desc Given your parent's indent level (ip), your base indent level (ib), it
+        will work out one or more newlines and return either a new base indent
+        level and s2 (the state you should transition to if it's your child) or
+        nothing and s1 (the state you should transition to if it's a child
+        belonging to your ancestor). If you specify a newline-parent (nl_p)
+        newlines will get fed to that. If, in addition, spaces (sp) is set to T
+        - the parent will receive the random whitespace along with newlines (not
+        including any spaces on the beginning of the line with actual text on
+        it).
+  |state[indenting]                                            |
+    : $indent > ir   |     |                                   | <return[ib s2]>
+    : [ \t] sp?      | >>a |                                   | @.
+    : [ \t]          | >>  |                                   | @.
+    : [\n] nl_p?     | >>a | a>>nl_p                           | @.
+    : $indent <= ip  |     |                                   | <return[-- s1]>
+
+
+#-------------------------------------------------------------------------------
+|stateset[nodu(parent)] 
+  |state[
+
+
