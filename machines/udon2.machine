@@ -33,15 +33,13 @@
 
 #-------------------------------------------------------------------------------
 |stateset[nl(ip s1 ib s2 nl_p sp=F)]                           | @indenting
-  |desc Given your parent's indent level (ip), your base indent level (ib), it
-        will work out one or more newlines and return either a new base indent
-        level and s2 (the state you should transition to if it's your child) or
-        nothing and s1 (the state you should transition to if it's a child
-        belonging to your ancestor). If you specify a newline-parent (nl_p)
-        newlines will get fed to that. If, in addition, spaces (sp) is set to T
-        - the parent will receive the random whitespace along with newlines (not
-        including any spaces on the beginning of the line with actual text on
-        it).
+  |desc 
+  |params :ip   Your parent's indent level
+          :s1   nl will return this state if the next logical line is a parent's
+          :ib   Your indentation baseline
+          :s2   nl will return this state if the next logical line is yours
+          :nl_p If passed in, newlines accumulate to it
+          :sp   If nl_p and this is set to T, random whitespaces are sent to nl_p as well
   |state[indenting]                                            |
     : $indent > ir   |     |                                   | <return[ib s2]>
     : [ \t] sp?      | >>a |                                   | @.
